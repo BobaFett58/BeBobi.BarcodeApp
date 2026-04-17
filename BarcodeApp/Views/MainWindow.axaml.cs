@@ -1,5 +1,8 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using Avalonia.Layout;
+using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using BarcodeApp.ViewModels;
 
@@ -20,11 +23,11 @@ public partial class MainWindow : Window
 
         var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
-            Title = "Select CSV/XLS source file",
+            Title = "Wybierz plik źródłowy CSV/XLS",
             AllowMultiple = false,
             FileTypeFilter =
             [
-                new FilePickerFileType("Input files")
+                new FilePickerFileType("Pliki wejściowe")
                 {
                     Patterns = ["*.csv", "*.xls", "*.xlsx"]
                 }
@@ -41,11 +44,11 @@ public partial class MainWindow : Window
 
         var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
         {
-            Title = "Save generated ZPL",
-            SuggestedFileName = "labels.zpl",
+            Title = "Zapisz wygenerowany plik ZPL",
+            SuggestedFileName = "etykiety.zpl",
             FileTypeChoices =
             [
-                new FilePickerFileType("ZPL files")
+                new FilePickerFileType("Pliki ZPL")
                 {
                     Patterns = ["*.zpl"]
                 }
@@ -61,5 +64,73 @@ public partial class MainWindow : Window
         if (sender is not Button { Tag: ProductRowViewModel row }) return;
 
         ViewModel?.RemoveRow(row);
+    }
+
+    private async void ShowHelpButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        var dialog = new Window
+        {
+            Title = "Jak korzystać z aplikacji",
+            Width = 700,
+            Height = 500,
+            MinWidth = 600,
+            MinHeight = 420,
+            CanResize = true,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner
+        };
+
+        var description = new TextBlock
+        {
+            Text = "Ta aplikacja służy do importu produktów z CSV/XLS, edycji danych i generowania etykiet ZPL.",
+            TextWrapping = TextWrapping.Wrap
+        };
+
+        var steps = new TextBlock
+        {
+            Text =
+                "1. Kliknij \"Importuj CSV/XLS\" i wybierz plik.\n" +
+                "2. Sprawdź kolumny EAN, nazwa produktu i ilość.\n" +
+                "3. Popraw błędne wiersze (sekcja \"Walidacja\" pokaże problem).\n" +
+                "4. W razie potrzeby dodawaj lub usuwaj wiersze.\n" +
+                "5. Kliknij \"Eksportuj ZPL\" aby zapisać plik etykiet.\n" +
+                "6. Aby drukować bezpośrednio, wpisz host/IP i port drukarki, potem kliknij \"Wyślij do drukarki\".",
+            TextWrapping = TextWrapping.Wrap
+        };
+
+        var tips = new TextBlock
+        {
+            Text =
+                "Wskazówki:\n" +
+                "- Poprawny EAN musi mieć 13 cyfr i prawidłową sumę kontrolną.\n" +
+                "- Ilość musi być dodatnią liczbą całkowitą.\n" +
+                "- Przełącznik nazwy produktu decyduje, czy nazwa pojawi się na etykiecie.",
+            TextWrapping = TextWrapping.Wrap
+        };
+
+        var closeButton = new Button
+        {
+            Content = "Zamknij",
+            HorizontalAlignment = HorizontalAlignment.Right,
+            MinWidth = 100
+        };
+        closeButton.Click += (_, _) => dialog.Close();
+
+        dialog.Content = new ScrollViewer
+        {
+            Content = new StackPanel
+            {
+                Margin = new Thickness(16),
+                Spacing = 12,
+                Children =
+                {
+                    description,
+                    steps,
+                    tips,
+                    closeButton
+                }
+            }
+        };
+
+        await dialog.ShowDialog(this);
     }
 }

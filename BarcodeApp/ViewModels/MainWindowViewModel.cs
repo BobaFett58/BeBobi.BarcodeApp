@@ -1,6 +1,5 @@
 ﻿using System.Collections.ObjectModel;
 using System.Collections.Specialized;
-using System.Net.Sockets;
 using System.Text;
 using BarcodeApp.Models;
 using BarcodeApp.Services;
@@ -11,12 +10,6 @@ namespace BarcodeApp.ViewModels;
 public sealed class MainWindowViewModel : ViewModelBase
 {
     private readonly ImportService _importService = new();
-    private bool? _includeProductName = true;
-    private string _printerHost = string.Empty;
-    private string _printerPort = "9100";
-
-    private ProductRowViewModel? _selectedRow;
-    private string _statusMessage = "Import a CSV/XLS file to begin.";
 
     public MainWindowViewModel()
     {
@@ -25,43 +18,90 @@ public sealed class MainWindowViewModel : ViewModelBase
         AddRowCommand = new RelayCommand(AddRow);
         RemoveSelectedRowCommand = new RelayCommand(RemoveSelectedRow, () => Rows.Count > 0);
         ClearRowsCommand = new RelayCommand(ClearRows, () => Rows.Count > 0);
-        SendToPrinterCommand = new AsyncRelayCommand(SendToPrinterAsync);
     }
 
     public ObservableCollection<ProductRowViewModel> Rows { get; } = [];
 
     public ProductRowViewModel? SelectedRow
     {
-        get => _selectedRow;
+        get;
         set
         {
-            if (SetProperty(ref _selectedRow, value)) RemoveSelectedRowCommand.NotifyCanExecuteChanged();
+            if (SetProperty(ref field, value)) RemoveSelectedRowCommand.NotifyCanExecuteChanged();
         }
     }
 
     public string StatusMessage
     {
-        get => _statusMessage;
-        private set => SetProperty(ref _statusMessage, value);
-    }
-
-    public string PrinterHost
-    {
-        get => _printerHost;
-        set => SetProperty(ref _printerHost, value);
-    }
-
-    public string PrinterPort
-    {
-        get => _printerPort;
-        set => SetProperty(ref _printerPort, value);
-    }
+        get;
+        private set => SetProperty(ref field, value);
+    } = "Zaimportuj plik CSV/XLS, aby rozpocząć.";
 
     public bool? IncludeProductName
     {
-        get => _includeProductName;
-        set => SetProperty(ref _includeProductName, value);
-    }
+        get;
+        set => SetProperty(ref field, value);
+    } = true;
+
+    // ── Label size settings ──────────────────────────────────────────────────
+
+    public int PrinterDpi
+    {
+        get;
+        set
+        {
+            if (SetProperty(ref field, value))
+            {
+                OnPropertyChanged(nameof(LabelWidthMm));
+                OnPropertyChanged(nameof(LabelHeightMm));
+                OnPropertyChanged(nameof(DpiHint));
+            }
+        }
+    } = 203;
+
+    public string LabelWidthDotsText
+    {
+        get;
+        set
+        {
+            if (SetProperty(ref field, value))
+                OnPropertyChanged(nameof(LabelWidthMm));
+        }
+    } = "600";
+
+    public string BarcodeHeightDotsText
+    {
+        get;
+        set => SetProperty(ref field, value);
+    } = "110";
+
+    public string LabelHeightDotsText
+    {
+        get;
+        set
+        {
+            if (SetProperty(ref field, value))
+                OnPropertyChanged(nameof(LabelHeightMm));
+        }
+    } = "0";
+
+    public string LabelWidthMm =>
+        int.TryParse(LabelWidthDotsText, out var w) && PrinterDpi > 0
+            ? $"{w * 25.4 / PrinterDpi:F1} mm"
+            : "—";
+
+    public string LabelHeightMm =>
+        int.TryParse(LabelHeightDotsText, out var h) && h > 0 && PrinterDpi > 0
+            ? $"{h * 25.4 / PrinterDpi:F1} mm"
+            : "auto";
+
+    public string DpiHint =>
+        PrinterDpi switch
+        {
+            203 => "203 dpi — 8 dots/mm (standard Zebra)",
+            300 => "300 dpi — 12 dots/mm (wysoka jakość)",
+            _ => $"{PrinterDpi} dpi"
+        };
 
     public int ValidRowsCount => Rows.Count(row => row.IsValid);
 
@@ -78,13 +118,11 @@ public sealed class MainWindowViewModel : ViewModelBase
 
     public IRelayCommand ClearRowsCommand { get; }
 
-    public IAsyncRelayCommand SendToPrinterCommand { get; }
-
     public void ImportFromPath(string? path)
     {
         if (string.IsNullOrWhiteSpace(path))
         {
-            StatusMessage = "No input file selected.";
+            StatusMessage = "Nie wybrano pliku wejściowego.";
             return;
         }
 
@@ -102,14 +140,14 @@ public sealed class MainWindowViewModel : ViewModelBase
 
             if (Rows.Count == 0)
             {
-                StatusMessage = "File loaded, but no data rows were recognized.";
+                StatusMessage = "Plik wczytany, ale nie rozpoznano żadnych wierszy danych.";
             }
             else
             {
                 var warningPart = result.Warnings.Count > 0
-                    ? $" Warnings: {string.Join("; ", result.Warnings)}"
+                    ? $" Ostrzeżenia: {string.Join("; ", result.Warnings)}"
                     : string.Empty;
-                StatusMessage = $"Imported {Rows.Count} rows from {Path.GetFileName(path)}.{warningPart}";
+                StatusMessage = $"Zaimportowano {Rows.Count} wierszy z pliku {Path.GetFileName(path)}.{warningPart}";
             }
 
             NotifyStatsChanged();
@@ -117,7 +155,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         }
         catch (Exception ex)
         {
-            StatusMessage = $"Import failed: {ex.Message}";
+            StatusMessage = $"Import nie powiódł się: {ex.Message}";
         }
     }
 
@@ -125,24 +163,27 @@ public sealed class MainWindowViewModel : ViewModelBase
     {
         if (string.IsNullOrWhiteSpace(path))
         {
-            StatusMessage = "No output file selected.";
+            StatusMessage = "Nie wybrano pliku wyjściowego.";
             return;
         }
 
         var validData = CollectValidData();
         if (validData.Count == 0)
         {
-            StatusMessage = "No valid rows to export. Fix row errors first.";
+            StatusMessage = "Brak poprawnych wierszy do eksportu. Najpierw popraw błędy.";
             return;
         }
 
         var zpl = ZplBuilder.Build(validData, new ZplBuildOptions
         {
-            IncludeProductName = IncludeProductName ?? true
+            IncludeProductName = IncludeProductName ?? true,
+            LabelWidthDots = int.TryParse(LabelWidthDotsText, out var w1) && w1 > 0 ? w1 : 600,
+            BarcodeHeightDots = int.TryParse(BarcodeHeightDotsText, out var bh1) && bh1 > 0 ? bh1 : 110,
+            LabelHeightDots = int.TryParse(LabelHeightDotsText, out var lh1) && lh1 > 0 ? lh1 : 0
         });
 
         File.WriteAllText(path, zpl, Encoding.ASCII);
-        StatusMessage = $"ZPL exported to {Path.GetFileName(path)} ({validData.Count} products, {TotalLabels} labels).";
+        StatusMessage = $"Wyeksportowano ZPL do {Path.GetFileName(path)} ({validData.Count} produktów, {TotalLabels} etykiet).";
     }
 
     public void RemoveRow(ProductRowViewModel row)
@@ -157,50 +198,6 @@ public sealed class MainWindowViewModel : ViewModelBase
 
         ClearRowsCommand.NotifyCanExecuteChanged();
         NotifyStatsChanged();
-    }
-
-    private async Task SendToPrinterAsync()
-    {
-        var validData = CollectValidData();
-        if (validData.Count == 0)
-        {
-            StatusMessage = "No valid rows to print. Fix row errors first.";
-            return;
-        }
-
-        if (string.IsNullOrWhiteSpace(PrinterHost))
-        {
-            StatusMessage = "Provide printer host (IP or DNS name).";
-            return;
-        }
-
-        if (!int.TryParse(PrinterPort, out var port) || port is < 1 or > 65535)
-        {
-            StatusMessage = "Printer port must be in range 1-65535.";
-            return;
-        }
-
-        var zpl = ZplBuilder.Build(validData, new ZplBuildOptions
-        {
-            IncludeProductName = IncludeProductName ?? true
-        });
-
-        try
-        {
-            using var client = new TcpClient();
-            await client.ConnectAsync(PrinterHost.Trim(), port);
-
-            await using var stream = client.GetStream();
-            var bytes = Encoding.ASCII.GetBytes(zpl);
-            await stream.WriteAsync(bytes);
-            await stream.FlushAsync();
-
-            StatusMessage = $"Sent {TotalLabels} labels to {PrinterHost}:{port}.";
-        }
-        catch (Exception ex)
-        {
-            StatusMessage = $"Print send failed: {ex.Message}";
-        }
     }
 
     private void AddRow()
@@ -231,7 +228,7 @@ public sealed class MainWindowViewModel : ViewModelBase
 
         Rows.Clear();
         SelectedRow = null;
-        StatusMessage = "Rows cleared.";
+        StatusMessage = "Wiersze wyczyszczone.";
         ClearRowsCommand.NotifyCanExecuteChanged();
         NotifyStatsChanged();
     }

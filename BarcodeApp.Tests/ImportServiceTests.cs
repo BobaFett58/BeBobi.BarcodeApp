@@ -90,7 +90,7 @@ public sealed class ImportServiceTests
 
         Assert.Empty(result.Rows);
         Assert.Single(result.Warnings);
-        Assert.Contains("Input file has no data rows", result.Warnings[0], StringComparison.Ordinal);
+        Assert.Contains("Plik wejściowy nie zawiera żadnych wierszy danych", result.Warnings[0], StringComparison.Ordinal);
     }
 
     [Fact]
@@ -163,6 +163,6 @@ public sealed class ImportServiceTests
 
         Assert.Empty(result.Rows);
         Assert.Single(result.Warnings);
-        Assert.Contains("No rows with product data", result.Warnings[0], StringComparison.Ordinal);
+        Assert.Contains("nie znaleziono żadnych wierszy z danymi produktów", result.Warnings[0], StringComparison.OrdinalIgnoreCase);
     }
 }

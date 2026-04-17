@@ -27,14 +27,14 @@ public sealed class ImportService
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
-        if (!File.Exists(path)) throw new FileNotFoundException("Input file was not found.", path);
+        if (!File.Exists(path)) throw new FileNotFoundException("Nie znaleziono pliku wejściowego.", path);
 
         var extension = Path.GetExtension(path).ToLowerInvariant();
         var rows = extension switch
         {
             ".csv" => ReadCsv(path),
             ".xls" or ".xlsx" => ReadExcel(path),
-            _ => throw new NotSupportedException($"Unsupported file extension: {extension}")
+            _ => throw new NotSupportedException($"Nieobsługiwane rozszerzenie pliku: {extension}")
         };
 
         return ParseRows(rows);
@@ -98,7 +98,7 @@ public sealed class ImportService
             return new ImportResult
             {
                 Rows = [],
-                Warnings = ["Input file has no data rows."]
+                Warnings = ["Plik wejściowy nie zawiera żadnych wierszy danych."]
             };
 
         var warnings = new List<string>();
@@ -108,7 +108,7 @@ public sealed class ImportService
         if (mapping is null)
         {
             mapping = (0, 1, 2);
-            warnings.Add("Could not detect headers. Falling back to first three columns: EAN, Name, Quantity.");
+            warnings.Add("Nie udało się wykryć nagłówków. Użyto pierwszych trzech kolumn: EAN, Nazwa, Ilość.");
         }
 
         var startIndex = hasHeader ? 1 : 0;
@@ -133,7 +133,7 @@ public sealed class ImportService
             });
         }
 
-        if (importedRows.Count == 0) warnings.Add("No rows with product data were found after parsing.");
+        if (importedRows.Count == 0) warnings.Add("Po przetworzeniu nie znaleziono żadnych wierszy z danymi produktów.");
 
         return new ImportResult
         {

@@ -11,8 +11,6 @@ public enum AppThemeMode
 
 public static class ThemeConfiguration
 {
-    public static AppThemeMode DefaultMode => AppThemeMode.System;
-
     public static AppThemeMode Parse(string? value)
     {
         if (string.IsNullOrWhiteSpace(value)) return AppThemeMode.System;

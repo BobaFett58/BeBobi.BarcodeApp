@@ -10,7 +10,7 @@
         x:DataType="vm:MainWindowViewModel"
         x:CompileBindings="False"
         Icon="/Assets/avalonia-logo.ico"
-        Title="EAN to ZPL">
+        Title="EAN do ZPL">
 
     <Design.DataContext>
         <!-- This only sets the DataContext for the previewer in an IDE,
@@ -18,27 +18,27 @@
         <vm:MainWindowViewModel />
     </Design.DataContext>
 
-    <Grid RowDefinitions="Auto,Auto,*,Auto,Auto" Margin="16" RowSpacing="10">
+    <Grid RowDefinitions="Auto,Auto,*,Auto,Auto,Auto" Margin="16" RowSpacing="10">
         <Border Grid.Row="0" Padding="12" Classes="surface-card toolbar-card">
             <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto,Auto,Auto" ColumnSpacing="8">
-                <Button Content="Import CSV/XLS" Click="ImportFileButton_OnClick" />
-                <Button Grid.Column="1" Content="Add Row" Command="{Binding AddRowCommand}" />
-                <Button Grid.Column="2" Content="Remove Selected" Command="{Binding RemoveSelectedRowCommand}" />
-                <Button Grid.Column="4" Content="Clear" Command="{Binding ClearRowsCommand}" />
-                <CheckBox Grid.Column="5" Content="Include Product Name In Label"
+                <Button Content="Importuj CSV/XLS" Click="ImportFileButton_OnClick" />
+                <Button Grid.Column="1" Content="Dodaj wiersz" Command="{Binding AddRowCommand}" />
+                <Button Grid.Column="2" Content="Usuń zaznaczony" Command="{Binding RemoveSelectedRowCommand}" />
+                <Button Grid.Column="4" Content="Wyczyść" Command="{Binding ClearRowsCommand}" />
+                <CheckBox Grid.Column="5" Content="Uwzględnij nazwę produktu na etykiecie"
                           IsChecked="{Binding IncludeProductName, Mode=TwoWay}"
                           IsThreeState="False"
                           VerticalAlignment="Center" />
-                <Button Grid.Column="6" Content="Export ZPL" Click="ExportZplButton_OnClick" />
+                <Button Grid.Column="6" Content="Eksportuj ZPL" Click="ExportZplButton_OnClick" />
             </Grid>
         </Border>
 
         <Grid Grid.Row="1" ColumnDefinitions="Auto,Auto,Auto,*,Auto,Auto,Auto" ColumnSpacing="10">
-            <TextBlock VerticalAlignment="Center" Text="Valid:" Classes="section-label" />
+            <TextBlock VerticalAlignment="Center" Text="Poprawne:" Classes="section-label" />
             <TextBlock Grid.Column="1" VerticalAlignment="Center" Text="{Binding ValidRowsCount}" />
-            <TextBlock Grid.Column="2" VerticalAlignment="Center" Text="Invalid:" Classes="section-label" />
+            <TextBlock Grid.Column="2" VerticalAlignment="Center" Text="Błędne:" Classes="section-label" />
             <TextBlock Grid.Column="3" VerticalAlignment="Center" Text="{Binding InvalidRowsCount}" />
-            <TextBlock Grid.Column="4" VerticalAlignment="Center" Text="Labels:" Classes="section-label" />
+            <TextBlock Grid.Column="4" VerticalAlignment="Center" Text="Etykiety:" Classes="section-label" />
             <TextBlock Grid.Column="5" VerticalAlignment="Center" Text="{Binding TotalLabels}" />
         </Grid>
 
@@ -47,10 +47,10 @@
                 <Border Padding="8" BorderThickness="0,0,0,1" Classes="table-header">
                     <Grid ColumnDefinitions="220,*,130,380,Auto" ColumnSpacing="8">
                         <TextBlock Text="EAN-13" />
-                        <TextBlock Grid.Column="1" Text="Product Name" />
-                        <TextBlock Grid.Column="2" Text="Quantity" />
-                        <TextBlock Grid.Column="3" Text="Validation" />
-                        <TextBlock Grid.Column="4" Text="Actions" />
+                        <TextBlock Grid.Column="1" Text="Nazwa produktu" />
+                        <TextBlock Grid.Column="2" Text="Ilość" />
+                        <TextBlock Grid.Column="3" Text="Walidacja" />
+                        <TextBlock Grid.Column="4" Text="Akcje" />
                     </Grid>
                 </Border>
 
@@ -61,13 +61,13 @@
                             <DataTemplate>
                                 <Border Padding="8" Classes="table-row">
                                     <Grid ColumnDefinitions="220,*,130,380,Auto" ColumnSpacing="8">
-                                        <TextBox Text="{Binding Ean, Mode=TwoWay}" PlaceholderText="13-digit EAN" />
+                                        <TextBox Text="{Binding Ean, Mode=TwoWay}" PlaceholderText="13-cyfrowy EAN" />
                                         <TextBox Grid.Column="1" Text="{Binding Name, Mode=TwoWay}"
-                                                 PlaceholderText="Product name" />
+                                                 PlaceholderText="Nazwa produktu" />
                                         <TextBox Grid.Column="2" Text="{Binding QuantityText, Mode=TwoWay}" />
                                         <TextBlock Grid.Column="3" Text="{Binding ValidationMessage}"
                                                    VerticalAlignment="Center" TextWrapping="Wrap" />
-                                        <Button Grid.Column="4" Content="Remove" Click="RemoveRowButton_OnClick"
+                                        <Button Grid.Column="4" Content="Usuń" Click="RemoveRowButton_OnClick"
                                                 Tag="{Binding .}" />
                                     </Grid>
                                 </Border>
@@ -78,29 +78,78 @@
             </Grid>
         </Border>
 
-        <Border Grid.Row="3" Padding="12" Classes="surface-card print-card">
-            <Grid ColumnDefinitions="Auto,200,Auto,80,Auto,*" ColumnSpacing="8">
-                <TextBlock VerticalAlignment="Center" Text="Printer host/IP:" Classes="section-label" />
-                <TextBox Grid.Column="1" PlaceholderText="e.g. 192.168.1.40">
-                    <TextBox.Text>
-                        <Binding Path="PrinterHost" Mode="TwoWay" />
-                    </TextBox.Text>
-                </TextBox>
+        <!-- Label size settings panel -->
+        <Border Grid.Row="3" Padding="12" Classes="surface-card">
+            <StackPanel Spacing="8">
+                <TextBlock Text="Rozmiar etykiety" Classes="section-label" />
 
-                <TextBlock Grid.Column="2" VerticalAlignment="Center" Text="Port:" Classes="section-label" />
-                <TextBox Grid.Column="3">
-                    <TextBox.Text>
-                        <Binding Path="PrinterPort" Mode="TwoWay" />
-                    </TextBox.Text>
-                </TextBox>
+                <!-- DPI row -->
+                <Grid ColumnDefinitions="Auto,110,*" ColumnSpacing="10">
+                    <TextBlock VerticalAlignment="Center" Text="DPI drukarki:" Classes="section-label" />
+                    <ComboBox Grid.Column="1"
+                              SelectedItem="{Binding PrinterDpi, Mode=TwoWay}">
+                        <ComboBox.Items>
+                            <x:Int32>203</x:Int32>
+                            <x:Int32>300</x:Int32>
+                        </ComboBox.Items>
+                    </ComboBox>
+                    <TextBlock Grid.Column="2" VerticalAlignment="Center" Margin="10,0,0,0"
+                               Text="{Binding DpiHint}" Opacity="0.65" />
+                </Grid>
 
-                <Button Grid.Column="4" Content="Send To Printer" Command="{Binding SendToPrinterCommand}" />
-            </Grid>
+                <!-- Dot fields row -->
+                <Grid ColumnDefinitions="Auto,96,Auto,16,Auto,96,Auto,16,Auto,96,Auto" ColumnSpacing="6">
+                    <TextBlock Grid.Column="0" VerticalAlignment="Center" Text="Szerokość (dots):" Classes="section-label" />
+                    <TextBox Grid.Column="1" Text="{Binding LabelWidthDotsText, Mode=TwoWay}" />
+                    <TextBlock Grid.Column="2" VerticalAlignment="Center" Margin="4,0,0,0"
+                               Text="{Binding LabelWidthMm}" Opacity="0.65" />
+
+                    <TextBlock Grid.Column="4" VerticalAlignment="Center" Text="Wys. kodu (dots):" Classes="section-label"
+                               ToolTip.Tip="Wysokość pionowych kresek kodu kreskowego. Np. 110 dots ≈ 14 mm przy 203 dpi. Nie wpływa na rozmiar etykiety." />
+                    <TextBox Grid.Column="5" Text="{Binding BarcodeHeightDotsText, Mode=TwoWay}"
+                             ToolTip.Tip="Standardowe wartości: 80–150. Wyższy kod = łatwiejszy odczyt przez skaner." />
+                    <TextBlock Grid.Column="6" VerticalAlignment="Center" Margin="4,0,0,0"
+                               Opacity="0.65" Text="kreski" />
+
+                    <TextBlock Grid.Column="8" VerticalAlignment="Center" Text="Wys. etykiety (dots):" Classes="section-label"
+                               ToolTip.Tip="Całkowita wysokość etykiety. Zostaw 0, jeśli drukarka ma mierzyć etykietę automatycznie (gap detection)." />
+                    <TextBox Grid.Column="9" Text="{Binding LabelHeightDotsText, Mode=TwoWay}"
+                             ToolTip.Tip="0 = drukarka mierzy etykietę sama. Wpisz np. 400, by wydrukować zawsze etykietę o wysokości 400 dots ≈ 50 mm (przy 203 dpi)." />
+                    <TextBlock Grid.Column="10" VerticalAlignment="Center" Margin="4,0,0,0"
+                               Text="{Binding LabelHeightMm}" Opacity="0.65" />
+                </Grid>
+
+                <!-- Tips box -->
+                <Border Padding="10,8" CornerRadius="6" BorderThickness="1" Opacity="0.9"
+                        Background="{DynamicResource TableHeaderBackgroundBrush}"
+                        BorderBrush="{DynamicResource SurfaceBorderBrush}">
+                    <StackPanel Spacing="3">
+                        <TextBlock FontWeight="SemiBold" Text="Wskazówki" />
+                        <TextBlock TextWrapping="Wrap"
+                                   Text="Szerokość etykiety: sprawdź fizyczny rozmiar rolki. Np. rolka 75 mm → 600 dots przy 203 dpi, lub 900 dots przy 300 dpi." />
+                        <TextBlock TextWrapping="Wrap"
+                                   Text="Wys. kodu: to tylko wysokość kresek, nie całej etykiety. Typowa wartość 80–130. Większa = łatwiejszy odczyt." />
+                        <TextBlock TextWrapping="Wrap"
+                                   Text="Wys. etykiety: zostaw 0, jeśli nie wiesz — drukarka zmierzy etykietę sama (gap detection). Wpisz wartość tylko gdy etykiety są ciągłe (bez przerw) lub wydruk jest obcięty." />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
         </Border>
 
         <Border Grid.Row="4" Padding="10" CornerRadius="6" BorderThickness="1" Classes="surface-card status-card">
-            <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap" />
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                <Button Grid.Column="1" Content="Jak używać?" Click="ShowHelpButton_OnClick" />
+            </Grid>
         </Border>
+
+        <!-- Footer -->
+        <Grid Grid.Row="5" ColumnDefinitions="*,Auto" Margin="2,0">
+            <TextBlock VerticalAlignment="Center" FontSize="11" Opacity="0.5"
+                       Text="Made with &#x2764;&#xFE0F;, Qivisoft" />
+            <TextBlock Grid.Column="1" VerticalAlignment="Center" FontSize="11" Opacity="0.5"
+                       Text="qivisoft@gmail.com" />
+        </Grid>
     </Grid>
 
 </Window>

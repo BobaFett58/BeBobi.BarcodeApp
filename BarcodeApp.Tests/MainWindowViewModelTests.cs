@@ -1,6 +1,3 @@
-using System.Net;
-using System.Net.Sockets;
-using System.Text;
 using BarcodeApp.Tests.TestHelpers;
 using BarcodeApp.ViewModels;
 
@@ -35,7 +32,7 @@ public sealed class MainWindowViewModelTests
 
         vm.ImportFromPath(null);
 
-        Assert.Equal("No input file selected.", vm.StatusMessage);
+        Assert.Equal("Nie wybrano pliku wejściowego.", vm.StatusMessage);
     }
 
     [Fact]
@@ -47,7 +44,7 @@ public sealed class MainWindowViewModelTests
 
         vm.ExportZplToPath(output);
 
-        Assert.Equal("No valid rows to export. Fix row errors first.", vm.StatusMessage);
+        Assert.Equal("Brak poprawnych wierszy do eksportu. Najpierw popraw błędy.", vm.StatusMessage);
         Assert.False(File.Exists(output));
     }
 
@@ -58,7 +55,7 @@ public sealed class MainWindowViewModelTests
 
         vm.ExportZplToPath(null);
 
-        Assert.Equal("No output file selected.", vm.StatusMessage);
+        Assert.Equal("Nie wybrano pliku wyjściowego.", vm.StatusMessage);
     }
 
     [Fact]
@@ -78,7 +75,7 @@ public sealed class MainWindowViewModelTests
         Assert.True(File.Exists(output));
         var content = File.ReadAllText(output);
         Assert.Contains("^FD5903949788051^FS", content);
-        Assert.Contains("ZPL exported to", vm.StatusMessage, StringComparison.Ordinal);
+        Assert.Contains("Wyeksportowano ZPL do", vm.StatusMessage, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -103,7 +100,7 @@ public sealed class MainWindowViewModelTests
 
         vm.ImportFromPath(missing);
 
-        Assert.StartsWith("Import failed:", vm.StatusMessage, StringComparison.Ordinal);
+        Assert.StartsWith("Import nie powiódł się:", vm.StatusMessage, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -119,7 +116,7 @@ public sealed class MainWindowViewModelTests
         vm.ImportFromPath(path);
 
         Assert.Single(vm.Rows);
-        Assert.Contains("Imported 1 rows", vm.StatusMessage, StringComparison.Ordinal);
+        Assert.Contains("Zaimportowano 1 wierszy", vm.StatusMessage, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -162,86 +159,7 @@ public sealed class MainWindowViewModelTests
         vm.ClearRowsCommand.Execute(null);
 
         Assert.Empty(vm.Rows);
-        Assert.Equal("Rows cleared.", vm.StatusMessage);
-    }
-
-    [Fact]
-    public async Task SendToPrinterCommand_NoValidRows_ShowsMessage()
-    {
-        var vm = new MainWindowViewModel();
-
-        await vm.SendToPrinterCommand.ExecuteAsync(null);
-
-        Assert.Equal("No valid rows to print. Fix row errors first.", vm.StatusMessage);
-    }
-
-    [Fact]
-    public async Task SendToPrinterCommand_InvalidPort_ShowsMessage()
-    {
-        var vm = BuildSingleValidRowVm();
-        vm.PrinterHost = "localhost";
-        vm.PrinterPort = "abc";
-
-        await vm.SendToPrinterCommand.ExecuteAsync(null);
-
-        Assert.Equal("Printer port must be in range 1-65535.", vm.StatusMessage);
-    }
-
-    [Fact]
-    public async Task SendToPrinterCommand_MissingHost_ShowsMessage()
-    {
-        var vm = BuildSingleValidRowVm();
-        vm.PrinterHost = "";
-
-        await vm.SendToPrinterCommand.ExecuteAsync(null);
-
-        Assert.Equal("Provide printer host (IP or DNS name).", vm.StatusMessage);
-    }
-
-    [Fact]
-    public async Task SendToPrinterCommand_UnreachableHost_ShowsFailureMessage()
-    {
-        var vm = BuildSingleValidRowVm();
-        vm.PrinterHost = "127.0.0.1";
-
-        // Find a currently unused local port and close it before sending.
-        int port;
-        using (var listener = new TcpListener(IPAddress.Loopback, 0))
-        {
-            listener.Start();
-            port = ((IPEndPoint)listener.LocalEndpoint).Port;
-        }
-
-        vm.PrinterPort = port.ToString();
-        await vm.SendToPrinterCommand.ExecuteAsync(null);
-
-        Assert.StartsWith("Print send failed:", vm.StatusMessage, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task SendToPrinterCommand_SendsBytesToListener()
-    {
-        var vm = BuildSingleValidRowVm();
-        using var listener = new TcpListener(IPAddress.Loopback, 0);
-        listener.Start();
-        var port = ((IPEndPoint)listener.LocalEndpoint).Port;
-
-        vm.PrinterHost = "127.0.0.1";
-        vm.PrinterPort = port.ToString();
-
-        var acceptTask = listener.AcceptTcpClientAsync();
-        await vm.SendToPrinterCommand.ExecuteAsync(null);
-
-        using var client = await acceptTask;
-        using var stream = client.GetStream();
-        using var ms = new MemoryStream();
-        var buffer = new byte[1024];
-        var read = await stream.ReadAsync(buffer.AsMemory(0, buffer.Length));
-        ms.Write(buffer, 0, read);
-
-        var payload = Encoding.ASCII.GetString(ms.ToArray());
-        Assert.Contains("^FD5903949788051^FS", payload);
-        Assert.Contains("Sent 1 labels", vm.StatusMessage, StringComparison.Ordinal);
+        Assert.Equal("Wiersze wyczyszczone.", vm.StatusMessage);
     }
 
     private static MainWindowViewModel BuildSingleValidRowVm()

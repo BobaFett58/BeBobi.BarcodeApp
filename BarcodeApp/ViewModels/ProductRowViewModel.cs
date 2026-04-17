@@ -5,50 +5,44 @@ namespace BarcodeApp.ViewModels;
 
 public sealed class ProductRowViewModel : ViewModelBase
 {
-    private string _ean = string.Empty;
-    private bool _isValid;
-    private string _name = string.Empty;
-    private string _quantityText = "1";
-    private string _validationMessage = string.Empty;
-
     public string Ean
     {
-        get => _ean;
+        get;
         set
         {
-            if (SetProperty(ref _ean, value)) Validate();
+            if (SetProperty(ref field, value)) Validate();
         }
-    }
+    } = string.Empty;
 
     public string Name
     {
-        get => _name;
+        get;
         set
         {
-            if (SetProperty(ref _name, value)) Validate();
+            if (SetProperty(ref field, value)) Validate();
         }
-    }
+    } = string.Empty;
 
     public string QuantityText
     {
-        get => _quantityText;
+        get;
         set
         {
-            if (SetProperty(ref _quantityText, value)) Validate();
+            if (SetProperty(ref field, value)) Validate();
         }
-    }
+    } = "1";
 
     public bool IsValid
     {
-        get => _isValid;
-        private set => SetProperty(ref _isValid, value);
+        get;
+        private set => SetProperty(ref field, value);
     }
 
     public string ValidationMessage
     {
-        get => _validationMessage;
-        private set => SetProperty(ref _validationMessage, value);
-    }
+        get;
+        private set => SetProperty(ref field, value);
+    } = string.Empty;
 
     public event EventHandler? RowChanged;
 

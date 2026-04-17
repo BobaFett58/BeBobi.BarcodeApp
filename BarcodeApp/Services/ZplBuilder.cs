@@ -21,6 +21,8 @@ public static class ZplBuilder
             {
                 builder.AppendLine("^XA");
                 builder.AppendLine($"^PW{options.LabelWidthDots}");
+                if (options.LabelHeightDots > 0)
+                    builder.AppendLine($"^LL{options.LabelHeightDots}");
                 builder.AppendLine("^LH0,0");
 
                 if (options.IncludeProductName && !string.IsNullOrWhiteSpace(safeName))

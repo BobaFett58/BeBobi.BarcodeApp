@@ -9,4 +9,9 @@ public sealed class ZplBuildOptions
     public int LabelWidthDots { get; init; } = 600;
 
     public int BarcodeHeightDots { get; init; } = 110;
+
+    /// <summary>
+    /// When > 0 emits ^LL to fix label height. 0 = auto-size (ZPL default).
+    /// </summary>
+    public int LabelHeightDots { get; init; } = 0;
 }
