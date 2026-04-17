@@ -1,0 +1,85 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Styles.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Light">
+                    <SolidColorBrush x:Key="WindowBackgroundBrush" Color="#FFF5F7FA"/>
+                    <SolidColorBrush x:Key="SurfaceBackgroundBrush" Color="#FFFFFFFF"/>
+                    <SolidColorBrush x:Key="SurfaceBorderBrush" Color="#FFD0D7E2"/>
+                    <SolidColorBrush x:Key="ToolbarBackgroundBrush" Color="#FFE8F0FF"/>
+                    <SolidColorBrush x:Key="ToolbarBorderBrush" Color="#FFBFD0F0"/>
+                    <SolidColorBrush x:Key="TableHeaderBackgroundBrush" Color="#FFEFF4FD"/>
+                    <SolidColorBrush x:Key="TableRowSeparatorBrush" Color="#FFE0E6F0"/>
+                    <SolidColorBrush x:Key="PrintPanelBackgroundBrush" Color="#FFF4F7FB"/>
+                    <SolidColorBrush x:Key="StatusPanelBackgroundBrush" Color="#FFFFF3DC"/>
+                    <SolidColorBrush x:Key="StatusPanelBorderBrush" Color="#FFE3C88B"/>
+                </ResourceDictionary>
+
+                <ResourceDictionary x:Key="Dark">
+                    <SolidColorBrush x:Key="WindowBackgroundBrush" Color="#FF151A22"/>
+                    <SolidColorBrush x:Key="SurfaceBackgroundBrush" Color="#FF202733"/>
+                    <SolidColorBrush x:Key="SurfaceBorderBrush" Color="#FF36455A"/>
+                    <SolidColorBrush x:Key="ToolbarBackgroundBrush" Color="#FF1C2D49"/>
+                    <SolidColorBrush x:Key="ToolbarBorderBrush" Color="#FF35598A"/>
+                    <SolidColorBrush x:Key="TableHeaderBackgroundBrush" Color="#FF243246"/>
+                    <SolidColorBrush x:Key="TableRowSeparatorBrush" Color="#FF33435A"/>
+                    <SolidColorBrush x:Key="PrintPanelBackgroundBrush" Color="#FF222B38"/>
+                    <SolidColorBrush x:Key="StatusPanelBackgroundBrush" Color="#FF3A3222"/>
+                    <SolidColorBrush x:Key="StatusPanelBorderBrush" Color="#FF7A6844"/>
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+        </ResourceDictionary>
+    </Styles.Resources>
+
+    <Style Selector="Window">
+        <Setter Property="Background" Value="{DynamicResource WindowBackgroundBrush}"/>
+    </Style>
+
+    <Style Selector="Border.surface-card">
+        <Setter Property="CornerRadius" Value="8"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Background" Value="{DynamicResource SurfaceBackgroundBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource SurfaceBorderBrush}"/>
+    </Style>
+
+    <Style Selector="Border.toolbar-card">
+        <Setter Property="Background" Value="{DynamicResource ToolbarBackgroundBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource ToolbarBorderBrush}"/>
+    </Style>
+
+    <Style Selector="Border.table-shell">
+        <Setter Property="CornerRadius" Value="6"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource SurfaceBorderBrush}"/>
+    </Style>
+
+    <Style Selector="Border.table-header">
+        <Setter Property="Background" Value="{DynamicResource TableHeaderBackgroundBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource SurfaceBorderBrush}"/>
+    </Style>
+
+    <Style Selector="Border.table-row">
+        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource TableRowSeparatorBrush}"/>
+    </Style>
+
+    <Style Selector="Border.print-card">
+        <Setter Property="Background" Value="{DynamicResource PrintPanelBackgroundBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource SurfaceBorderBrush}"/>
+    </Style>
+
+    <Style Selector="Border.status-card">
+        <Setter Property="Background" Value="{DynamicResource StatusPanelBackgroundBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource StatusPanelBorderBrush}"/>
+    </Style>
+
+    <Style Selector="TextBlock.section-label">
+        <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+
+    <Style Selector="Border.table-header TextBlock">
+        <Setter Property="FontWeight" Value="Bold"/>
+    </Style>
+</Styles>

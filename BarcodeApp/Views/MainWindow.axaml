@@ -18,7 +18,7 @@
     </Design.DataContext>
 
     <Grid RowDefinitions="Auto,Auto,*,Auto,Auto" Margin="16" RowSpacing="10">
-        <Border Grid.Row="0" Padding="12" CornerRadius="8" Background="#F2F7FF" BorderBrush="#C9D8F2" BorderThickness="1">
+        <Border Grid.Row="0" Padding="12" Classes="surface-card toolbar-card">
             <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto,Auto,Auto" ColumnSpacing="8">
                 <Button Content="Import CSV/XLS" Click="ImportFileButton_OnClick"/>
                 <Button Grid.Column="1" Content="Add Row" Command="{Binding AddRowCommand}"/>
@@ -30,23 +30,23 @@
         </Border>
 
         <Grid Grid.Row="1" ColumnDefinitions="Auto,Auto,Auto,*,Auto,Auto,Auto" ColumnSpacing="10">
-            <TextBlock VerticalAlignment="Center" Text="Valid:" FontWeight="Bold"/>
+            <TextBlock VerticalAlignment="Center" Text="Valid:" Classes="section-label"/>
             <TextBlock Grid.Column="1" VerticalAlignment="Center" Text="{Binding ValidRowsCount}"/>
-            <TextBlock Grid.Column="2" VerticalAlignment="Center" Text="Invalid:" FontWeight="Bold"/>
+            <TextBlock Grid.Column="2" VerticalAlignment="Center" Text="Invalid:" Classes="section-label"/>
             <TextBlock Grid.Column="3" VerticalAlignment="Center" Text="{Binding InvalidRowsCount}"/>
-            <TextBlock Grid.Column="4" VerticalAlignment="Center" Text="Labels:" FontWeight="Bold"/>
+            <TextBlock Grid.Column="4" VerticalAlignment="Center" Text="Labels:" Classes="section-label"/>
             <TextBlock Grid.Column="5" VerticalAlignment="Center" Text="{Binding TotalLabels}"/>
         </Grid>
 
-        <Border Grid.Row="2" BorderThickness="1" BorderBrush="#D0D0D0" CornerRadius="6">
+        <Border Grid.Row="2" Classes="table-shell">
             <Grid RowDefinitions="Auto,*">
-                <Border Background="#EDF2FB" Padding="8" BorderBrush="#D0D0D0" BorderThickness="0,0,0,1">
+                <Border Padding="8" BorderThickness="0,0,0,1" Classes="table-header">
                     <Grid ColumnDefinitions="220,*,130,380,Auto" ColumnSpacing="8">
-                        <TextBlock Text="EAN-13" FontWeight="Bold"/>
-                        <TextBlock Grid.Column="1" Text="Product Name" FontWeight="Bold"/>
-                        <TextBlock Grid.Column="2" Text="Quantity" FontWeight="Bold"/>
-                        <TextBlock Grid.Column="3" Text="Validation" FontWeight="Bold"/>
-                        <TextBlock Grid.Column="4" Text="Actions" FontWeight="Bold"/>
+                        <TextBlock Text="EAN-13"/>
+                        <TextBlock Grid.Column="1" Text="Product Name"/>
+                        <TextBlock Grid.Column="2" Text="Quantity"/>
+                        <TextBlock Grid.Column="3" Text="Validation"/>
+                        <TextBlock Grid.Column="4" Text="Actions"/>
                     </Grid>
                 </Border>
 
@@ -54,7 +54,7 @@
                     <ItemsControl ItemsSource="{Binding Rows}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Border BorderBrush="#E6E6E6" BorderThickness="0,0,0,1" Padding="8">
+                                <Border Padding="8" Classes="table-row">
                                     <Grid ColumnDefinitions="220,*,130,380,Auto" ColumnSpacing="8">
                                         <TextBox Text="{Binding Ean, Mode=TwoWay}" PlaceholderText="13-digit EAN"/>
                                         <TextBox Grid.Column="1" Text="{Binding Name, Mode=TwoWay}" PlaceholderText="Product name"/>
@@ -70,19 +70,19 @@
             </Grid>
         </Border>
 
-        <Border Grid.Row="3" Padding="12" CornerRadius="8" Background="#F8F8F8" BorderBrush="#D9D9D9" BorderThickness="1">
+        <Border Grid.Row="3" Padding="12" Classes="surface-card print-card">
             <Grid ColumnDefinitions="Auto,200,Auto,80,Auto,*" ColumnSpacing="8">
-                <TextBlock VerticalAlignment="Center" Text="Printer host/IP:" FontWeight="Bold"/>
+                <TextBlock VerticalAlignment="Center" Text="Printer host/IP:" Classes="section-label"/>
                 <TextBox Grid.Column="1" Text="{Binding PrinterHost, Mode=TwoWay}" PlaceholderText="e.g. 192.168.1.40"/>
 
-                <TextBlock Grid.Column="2" VerticalAlignment="Center" Text="Port:" FontWeight="Bold"/>
+                <TextBlock Grid.Column="2" VerticalAlignment="Center" Text="Port:" Classes="section-label"/>
                 <TextBox Grid.Column="3" Text="{Binding PrinterPort, Mode=TwoWay}"/>
 
                 <Button Grid.Column="4" Content="Send To Printer" Command="{Binding SendToPrinterCommand}"/>
             </Grid>
         </Border>
 
-        <Border Grid.Row="4" Padding="10" CornerRadius="6" Background="#FFF7E6" BorderBrush="#E0C899" BorderThickness="1">
+        <Border Grid.Row="4" Padding="10" CornerRadius="6" BorderThickness="1" Classes="surface-card status-card">
             <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap"/>
         </Border>
     </Grid>

@@ -1,9 +1,7 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.Data.Core;
-using Avalonia.Data.Core.Plugins;
-using System.Linq;
 using Avalonia.Markup.Xaml;
+using BarcodeApp.Theming;
 using BarcodeApp.ViewModels;
 using BarcodeApp.Views;
 
@@ -14,6 +12,8 @@ public partial class App : Application
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
+        RequestedThemeVariant = ThemeConfiguration.ToThemeVariant(
+            ThemeConfiguration.ResolveFromEnvironment(Environment.GetEnvironmentVariable("BARCODEAPP_THEME")));
     }
 
     public override void OnFrameworkInitializationCompleted()
