@@ -11,7 +11,7 @@ namespace BarcodeApp.ViewModels;
 public sealed class MainWindowViewModel : ViewModelBase
 {
     private readonly ImportService _importService = new();
-    private bool _includeProductName = true;
+    private bool? _includeProductName = true;
     private string _printerHost = string.Empty;
     private string _printerPort = "9100";
 
@@ -57,7 +57,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         set => SetProperty(ref _printerPort, value);
     }
 
-    public bool IncludeProductName
+    public bool? IncludeProductName
     {
         get => _includeProductName;
         set => SetProperty(ref _includeProductName, value);
@@ -138,7 +138,7 @@ public sealed class MainWindowViewModel : ViewModelBase
 
         var zpl = ZplBuilder.Build(validData, new ZplBuildOptions
         {
-            IncludeProductName = IncludeProductName
+            IncludeProductName = IncludeProductName ?? true
         });
 
         File.WriteAllText(path, zpl, Encoding.ASCII);
@@ -182,7 +182,7 @@ public sealed class MainWindowViewModel : ViewModelBase
 
         var zpl = ZplBuilder.Build(validData, new ZplBuildOptions
         {
-            IncludeProductName = IncludeProductName
+            IncludeProductName = IncludeProductName ?? true
         });
 
         try

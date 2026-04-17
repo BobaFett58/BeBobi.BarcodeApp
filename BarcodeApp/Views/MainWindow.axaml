@@ -8,6 +8,7 @@
         d:DesignHeight="760"
         x:Class="BarcodeApp.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
+        x:CompileBindings="False"
         Icon="/Assets/avalonia-logo.ico"
         Title="EAN to ZPL">
 
@@ -25,7 +26,9 @@
                 <Button Grid.Column="2" Content="Remove Selected" Command="{Binding RemoveSelectedRowCommand}" />
                 <Button Grid.Column="4" Content="Clear" Command="{Binding ClearRowsCommand}" />
                 <CheckBox Grid.Column="5" Content="Include Product Name In Label"
-                          IsChecked="{Binding IncludeProductName}" VerticalAlignment="Center" />
+                          IsChecked="{Binding IncludeProductName, Mode=TwoWay}"
+                          IsThreeState="False"
+                          VerticalAlignment="Center" />
                 <Button Grid.Column="6" Content="Export ZPL" Click="ExportZplButton_OnClick" />
             </Grid>
         </Border>
@@ -78,10 +81,18 @@
         <Border Grid.Row="3" Padding="12" Classes="surface-card print-card">
             <Grid ColumnDefinitions="Auto,200,Auto,80,Auto,*" ColumnSpacing="8">
                 <TextBlock VerticalAlignment="Center" Text="Printer host/IP:" Classes="section-label" />
-                <TextBox Grid.Column="1" Text="{Binding PrinterHost, Mode=TwoWay}" PlaceholderText="e.g. 192.168.1.40" />
+                <TextBox Grid.Column="1" PlaceholderText="e.g. 192.168.1.40">
+                    <TextBox.Text>
+                        <Binding Path="PrinterHost" Mode="TwoWay" />
+                    </TextBox.Text>
+                </TextBox>
 
                 <TextBlock Grid.Column="2" VerticalAlignment="Center" Text="Port:" Classes="section-label" />
-                <TextBox Grid.Column="3" Text="{Binding PrinterPort, Mode=TwoWay}" />
+                <TextBox Grid.Column="3">
+                    <TextBox.Text>
+                        <Binding Path="PrinterPort" Mode="TwoWay" />
+                    </TextBox.Text>
+                </TextBox>
 
                 <Button Grid.Column="4" Content="Send To Printer" Command="{Binding SendToPrinterCommand}" />
             </Grid>
