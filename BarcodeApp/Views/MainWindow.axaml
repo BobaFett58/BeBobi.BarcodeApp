@@ -1,12 +1,12 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:vm="using:BarcodeApp.ViewModels"
+        xmlns:vm="using:Qivisoft.BarcodeApp.ViewModels"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         d:DesignWidth="1280"
         d:DesignHeight="760"
-        x:Class="BarcodeApp.Views.MainWindow"
+        x:Class="Qivisoft.BarcodeApp.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         x:CompileBindings="False"
         Icon="/Assets/avalonia-logo.ico"
@@ -29,7 +29,8 @@
                           IsChecked="{Binding IncludeProductName, Mode=TwoWay}"
                           IsThreeState="False"
                           VerticalAlignment="Center" />
-                <Button Grid.Column="6" Content="Eksportuj ZPL" Click="ExportZplButton_OnClick" />
+                <Button Grid.Column="6" Content="Eksportuj ZPL" Click="ExportZplButton_OnClick"
+                        IsEnabled="{Binding CanExport}" />
             </Grid>
         </Border>
 

@@ -1,6 +1,6 @@
-using BarcodeApp.Services;
+using Qivisoft.BarcodeApp.Services;
 
-namespace BarcodeApp.Tests;
+namespace Qivisoft.BarcodeApp.Tests;
 
 public sealed class Ean13ValidatorTests
 {

@@ -1,11 +1,11 @@
 ﻿using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Text;
-using BarcodeApp.Models;
-using BarcodeApp.Services;
+using Qivisoft.BarcodeApp.Models;
+using Qivisoft.BarcodeApp.Services;
 using CommunityToolkit.Mvvm.Input;
 
-namespace BarcodeApp.ViewModels;
+namespace Qivisoft.BarcodeApp.ViewModels;
 
 public sealed class MainWindowViewModel : ViewModelBase
 {
@@ -202,6 +202,8 @@ public sealed class MainWindowViewModel : ViewModelBase
         .Where(row => row.IsValid)
         .Select(row => int.TryParse(row.QuantityText, out var qty) ? qty : 0)
         .Sum();
+
+    public bool CanExport => ValidRowsCount > 0;
 
     public IRelayCommand AddRowCommand { get; }
 
@@ -668,6 +670,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         OnPropertyChanged(nameof(ValidRowsCount));
         OnPropertyChanged(nameof(InvalidRowsCount));
         OnPropertyChanged(nameof(TotalLabels));
+        OnPropertyChanged(nameof(CanExport));
         RemoveSelectedRowCommand.NotifyCanExecuteChanged();
         ClearRowsCommand.NotifyCanExecuteChanged();
     }

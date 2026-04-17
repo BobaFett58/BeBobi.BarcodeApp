@@ -1,6 +1,6 @@
 ﻿using Avalonia;
 
-namespace BarcodeApp;
+namespace Qivisoft.BarcodeApp;
 
 internal sealed class Program
 {

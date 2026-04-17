@@ -1,4 +1,4 @@
-namespace BarcodeApp.Tests.TestHelpers;
+namespace Qivisoft.BarcodeApp.Tests.TestHelpers;
 
 public sealed class TempPath : IDisposable
 {

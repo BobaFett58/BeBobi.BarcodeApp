@@ -1,7 +1,7 @@
 using System.Text;
-using BarcodeApp.Models;
+using Qivisoft.BarcodeApp.Models;
 
-namespace BarcodeApp.Services;
+namespace Qivisoft.BarcodeApp.Services;
 
 public static class ZplBuilder
 {

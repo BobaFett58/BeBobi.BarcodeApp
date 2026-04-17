@@ -1,12 +1,31 @@
-using BarcodeApp.Tests.TestHelpers;
-using BarcodeApp.Models;
-using BarcodeApp.Services;
-using BarcodeApp.ViewModels;
+using Qivisoft.BarcodeApp.Tests.TestHelpers;
+using Qivisoft.BarcodeApp.Models;
+using Qivisoft.BarcodeApp.Services;
+using Qivisoft.BarcodeApp.ViewModels;
 
-namespace BarcodeApp.Tests;
+namespace Qivisoft.BarcodeApp.Tests;
 
 public sealed class MainWindowViewModelTests
 {
+    [Fact]
+    public void CanExport_DependsOnValidRows()
+    {
+        var vm = CreateVm();
+
+        Assert.False(vm.CanExport);
+
+        vm.AddRowCommand.Execute(null);
+        vm.Rows[0].Ean = "5903949788051";
+        vm.Rows[0].Name = "Produkt A";
+        vm.Rows[0].QuantityText = "1";
+
+        Assert.True(vm.CanExport);
+
+        vm.ClearRowsCommand.Execute(null);
+
+        Assert.False(vm.CanExport);
+    }
+
     [Fact]
     public void Constructor_LoadsSavedSettings()
     {
@@ -115,7 +134,7 @@ public sealed class MainWindowViewModelTests
     [Fact]
     public void Apply300Preset_ChangesFields()
     {
-        var vm = new MainWindowViewModel();
+        var vm = CreateVm();
 
         vm.Apply300DpiPresetCommand.Execute(null);
 
@@ -141,7 +160,7 @@ public sealed class MainWindowViewModelTests
     [Fact]
     public void AddAndRemoveRow_UpdatesCounters()
     {
-        var vm = new MainWindowViewModel();
+        var vm = CreateVm();
 
         vm.AddRowCommand.Execute(null);
         vm.Rows[0].Ean = "5903949788051";
@@ -161,7 +180,7 @@ public sealed class MainWindowViewModelTests
     [Fact]
     public void ImportFromPath_NullPath_UpdatesStatus()
     {
-        var vm = new MainWindowViewModel();
+        var vm = CreateVm();
 
         vm.ImportFromPath(null);
 
@@ -173,7 +192,7 @@ public sealed class MainWindowViewModelTests
     {
         using var temp = new TempPath();
         var output = temp.GetFilePath("out.zpl");
-        var vm = new MainWindowViewModel();
+        var vm = CreateVm();
 
         vm.ExportZplToPath(output);
 
@@ -196,7 +215,7 @@ public sealed class MainWindowViewModelTests
     {
         using var temp = new TempPath();
         var output = temp.GetFilePath("out.zpl");
-        var vm = new MainWindowViewModel();
+        var vm = CreateVm();
 
         vm.AddRowCommand.Execute(null);
         vm.Rows[0].Ean = "5903949788051";
@@ -228,7 +247,7 @@ public sealed class MainWindowViewModelTests
     [Fact]
     public void ImportFromPath_MissingFile_ShowsFailureMessage()
     {
-        var vm = new MainWindowViewModel();
+        var vm = CreateVm();
         var missing = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".csv");
 
         vm.ImportFromPath(missing);
@@ -245,7 +264,7 @@ public sealed class MainWindowViewModelTests
             "EAN,Nazwa produktu,Ilość\n" +
             "5903949788051,Produkt A,2\n");
 
-        var vm = new MainWindowViewModel();
+        var vm = CreateVm();
         vm.ImportFromPath(path);
 
         Assert.Single(vm.Rows);
@@ -266,7 +285,7 @@ public sealed class MainWindowViewModelTests
     [Fact]
     public void RemoveRow_Null_Throws()
     {
-        var vm = new MainWindowViewModel();
+        var vm = CreateVm();
 
         Assert.Throws<ArgumentNullException>(() => vm.RemoveRow(null!));
     }
@@ -274,7 +293,7 @@ public sealed class MainWindowViewModelTests
     [Fact]
     public void RemoveSelectedRowCommand_WhenSelectedRowNull_RemovesLastRow()
     {
-        var vm = new MainWindowViewModel();
+        var vm = CreateVm();
         vm.AddRowCommand.Execute(null);
         vm.AddRowCommand.Execute(null);
         vm.SelectedRow = null;
@@ -297,12 +316,17 @@ public sealed class MainWindowViewModelTests
 
     private static MainWindowViewModel BuildSingleValidRowVm()
     {
-        var vm = new MainWindowViewModel();
+        var vm = CreateVm();
         vm.AddRowCommand.Execute(null);
         vm.Rows[0].Ean = "5903949788051";
         vm.Rows[0].Name = "Produkt A";
         vm.Rows[0].QuantityText = "1";
         return vm;
+    }
+
+    private static MainWindowViewModel CreateVm()
+    {
+        return new MainWindowViewModel(new InMemorySettingsStore());
     }
 
     private sealed class InMemorySettingsStore : IAppSettingsStore

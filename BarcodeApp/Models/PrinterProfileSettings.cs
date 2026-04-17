@@ -1,4 +1,4 @@
-namespace BarcodeApp.Models;
+namespace Qivisoft.BarcodeApp.Models;
 
 public sealed class PrinterProfileSettings
 {

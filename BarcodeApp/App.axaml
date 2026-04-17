@@ -1,7 +1,7 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             x:Class="BarcodeApp.App"
-             xmlns:local="using:BarcodeApp"
+             x:Class="Qivisoft.BarcodeApp.App"
+             xmlns:local="using:Qivisoft.BarcodeApp"
              RequestedThemeVariant="Default">
     <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
 

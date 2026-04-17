@@ -1,6 +1,6 @@
 using Avalonia.Styling;
 
-namespace BarcodeApp.Theming;
+namespace Qivisoft.BarcodeApp.Theming;
 
 public enum AppThemeMode
 {

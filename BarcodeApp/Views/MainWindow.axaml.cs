@@ -4,9 +4,9 @@ using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
-using BarcodeApp.ViewModels;
+using Qivisoft.BarcodeApp.ViewModels;
 
-namespace BarcodeApp.Views;
+namespace Qivisoft.BarcodeApp.Views;
 
 public partial class MainWindow : Window
 {

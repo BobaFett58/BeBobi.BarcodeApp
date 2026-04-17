@@ -1,7 +1,7 @@
-using BarcodeApp.Models;
-using BarcodeApp.Services;
+using Qivisoft.BarcodeApp.Models;
+using Qivisoft.BarcodeApp.Services;
 
-namespace BarcodeApp.Tests;
+namespace Qivisoft.BarcodeApp.Tests;
 
 public sealed class ZplBuilderTests
 {

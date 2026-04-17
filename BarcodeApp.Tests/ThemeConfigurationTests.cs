@@ -1,7 +1,7 @@
 using Avalonia.Styling;
-using BarcodeApp.Theming;
+using Qivisoft.BarcodeApp.Theming;
 
-namespace BarcodeApp.Tests;
+namespace Qivisoft.BarcodeApp.Tests;
 
 public class ThemeConfigurationTests
 {

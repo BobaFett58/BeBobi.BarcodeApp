@@ -1,4 +1,4 @@
-namespace BarcodeApp.Services;
+namespace Qivisoft.BarcodeApp.Services;
 
 public static class Ean13Validator
 {

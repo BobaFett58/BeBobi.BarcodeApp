@@ -1,8 +1,8 @@
-using BarcodeApp.Services;
-using BarcodeApp.Tests.TestHelpers;
+using Qivisoft.BarcodeApp.Services;
+using Qivisoft.BarcodeApp.Tests.TestHelpers;
 using ClosedXML.Excel;
 
-namespace BarcodeApp.Tests;
+namespace Qivisoft.BarcodeApp.Tests;
 
 public sealed class ImportServiceTests
 {

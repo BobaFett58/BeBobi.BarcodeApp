@@ -1,9 +1,9 @@
 using System.Diagnostics.CodeAnalysis;
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
-using BarcodeApp.ViewModels;
+using Qivisoft.BarcodeApp.ViewModels;
 
-namespace BarcodeApp;
+namespace Qivisoft.BarcodeApp;
 
 /// <summary>
 ///     Given a view model, returns the corresponding view if possible.

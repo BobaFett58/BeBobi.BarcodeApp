@@ -1,11 +1,11 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
-using BarcodeApp.Theming;
-using BarcodeApp.ViewModels;
-using BarcodeApp.Views;
+using Qivisoft.BarcodeApp.Theming;
+using Qivisoft.BarcodeApp.ViewModels;
+using Qivisoft.BarcodeApp.Views;
 
-namespace BarcodeApp;
+namespace Qivisoft.BarcodeApp;
 
 public class App : Application
 {

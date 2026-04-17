@@ -1,10 +1,10 @@
 using System.Globalization;
-using BarcodeApp.Models;
+using Qivisoft.BarcodeApp.Models;
 using ClosedXML.Excel;
 using CsvHelper;
 using CsvHelper.Configuration;
 
-namespace BarcodeApp.Services;
+namespace Qivisoft.BarcodeApp.Services;
 
 public sealed class ImportService
 {

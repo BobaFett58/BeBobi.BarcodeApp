@@ -1,7 +1,7 @@
-using BarcodeApp.Models;
-using BarcodeApp.ViewModels;
+using Qivisoft.BarcodeApp.Models;
+using Qivisoft.BarcodeApp.ViewModels;
 
-namespace BarcodeApp.Tests;
+namespace Qivisoft.BarcodeApp.Tests;
 
 public sealed class ProductRowViewModelTests
 {
