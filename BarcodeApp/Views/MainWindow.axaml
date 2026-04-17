@@ -10,7 +10,7 @@
         x:DataType="vm:MainWindowViewModel"
         x:CompileBindings="False"
         Icon="/Assets/avalonia-logo.ico"
-        Title="EAN do ZPL">
+        Title="QiviLabel">
 
     <Design.DataContext>
         <!-- This only sets the DataContext for the previewer in an IDE,
@@ -80,12 +80,17 @@
         </Border>
 
         <!-- Label size settings panel -->
-        <Border Grid.Row="3" Padding="12" Classes="surface-card">
-            <StackPanel Spacing="8">
-                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                    <TextBlock Text="Rozmiar etykiety" Classes="section-label" VerticalAlignment="Center" />
-                    <Button Grid.Column="1" Content="Przywróć domyślne" Command="{Binding ResetSettingsCommand}" />
-                </Grid>
+        <Border Grid.Row="3" Padding="10" Classes="surface-card">
+            <Expander IsExpanded="False">
+                <Expander.Header>
+                    <TextBlock Text="Ustawienia etykiety i drukarki" Classes="section-label" />
+                </Expander.Header>
+
+                <StackPanel Spacing="8" Margin="0,8,0,0">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                        <TextBlock Text="Rozmiar etykiety" Classes="section-label" VerticalAlignment="Center" />
+                        <Button Grid.Column="1" Content="Przywróć domyślne" Command="{Binding ResetSettingsCommand}" />
+                    </Grid>
 
                 <Grid ColumnDefinitions="Auto,220,Auto,Auto,Auto,*" ColumnSpacing="8">
                     <TextBlock VerticalAlignment="Center" Text="Profil drukarki:" Classes="section-label" />
@@ -159,7 +164,8 @@
                                    Text="Wys. etykiety: zostaw 0, jeśli nie wiesz — drukarka zmierzy etykietę sama (gap detection). Wpisz wartość tylko gdy etykiety są ciągłe (bez przerw) lub wydruk jest obcięty." />
                     </StackPanel>
                 </Border>
-            </StackPanel>
+                </StackPanel>
+            </Expander>
         </Border>
 
         <Border Grid.Row="4" Padding="10" CornerRadius="6" BorderThickness="1" Classes="surface-card status-card">
