@@ -6,22 +6,17 @@ namespace BarcodeApp.ViewModels;
 public sealed class ProductRowViewModel : ViewModelBase
 {
     private string _ean = string.Empty;
+    private bool _isValid;
     private string _name = string.Empty;
     private string _quantityText = "1";
-    private bool _isValid;
     private string _validationMessage = string.Empty;
-
-    public event EventHandler? RowChanged;
 
     public string Ean
     {
         get => _ean;
         set
         {
-            if (SetProperty(ref _ean, value))
-            {
-                Validate();
-            }
+            if (SetProperty(ref _ean, value)) Validate();
         }
     }
 
@@ -30,10 +25,7 @@ public sealed class ProductRowViewModel : ViewModelBase
         get => _name;
         set
         {
-            if (SetProperty(ref _name, value))
-            {
-                Validate();
-            }
+            if (SetProperty(ref _name, value)) Validate();
         }
     }
 
@@ -42,10 +34,7 @@ public sealed class ProductRowViewModel : ViewModelBase
         get => _quantityText;
         set
         {
-            if (SetProperty(ref _quantityText, value))
-            {
-                Validate();
-            }
+            if (SetProperty(ref _quantityText, value)) Validate();
         }
     }
 
@@ -60,6 +49,8 @@ public sealed class ProductRowViewModel : ViewModelBase
         get => _validationMessage;
         private set => SetProperty(ref _validationMessage, value);
     }
+
+    public event EventHandler? RowChanged;
 
     public static ProductRowViewModel CreateEmpty()
     {
@@ -103,20 +94,12 @@ public sealed class ProductRowViewModel : ViewModelBase
         var errors = new List<string>();
         var normalizedEan = Ean.Trim();
 
-        if (!Ean13Validator.IsValid(normalizedEan))
-        {
-            errors.Add("EAN must contain 13 digits with valid checksum.");
-        }
+        if (!Ean13Validator.IsValid(normalizedEan)) errors.Add("EAN must contain 13 digits with valid checksum.");
 
-        if (string.IsNullOrWhiteSpace(Name))
-        {
-            errors.Add("Product name is required.");
-        }
+        if (string.IsNullOrWhiteSpace(Name)) errors.Add("Product name is required.");
 
         if (!int.TryParse(QuantityText.Trim(), out var qty) || qty <= 0)
-        {
             errors.Add("Quantity must be a positive integer.");
-        }
 
         IsValid = errors.Count == 0;
         ValidationMessage = IsValid ? "OK" : string.Join(" | ", errors);

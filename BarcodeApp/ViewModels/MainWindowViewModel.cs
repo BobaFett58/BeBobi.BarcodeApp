@@ -11,12 +11,12 @@ namespace BarcodeApp.ViewModels;
 public sealed class MainWindowViewModel : ViewModelBase
 {
     private readonly ImportService _importService = new();
+    private bool _includeProductName = true;
+    private string _printerHost = string.Empty;
+    private string _printerPort = "9100";
 
     private ProductRowViewModel? _selectedRow;
     private string _statusMessage = "Import a CSV/XLS file to begin.";
-    private string _printerHost = string.Empty;
-    private string _printerPort = "9100";
-    private bool _includeProductName = true;
 
     public MainWindowViewModel()
     {
@@ -35,10 +35,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         get => _selectedRow;
         set
         {
-            if (SetProperty(ref _selectedRow, value))
-            {
-                RemoveSelectedRowCommand.NotifyCanExecuteChanged();
-            }
+            if (SetProperty(ref _selectedRow, value)) RemoveSelectedRowCommand.NotifyCanExecuteChanged();
         }
     }
 
@@ -152,17 +149,11 @@ public sealed class MainWindowViewModel : ViewModelBase
     {
         ArgumentNullException.ThrowIfNull(row);
 
-        if (!Rows.Contains(row))
-        {
-            return;
-        }
+        if (!Rows.Contains(row)) return;
 
         DetachRowEvents(row);
         Rows.Remove(row);
-        if (ReferenceEquals(SelectedRow, row))
-        {
-            SelectedRow = Rows.LastOrDefault();
-        }
+        if (ReferenceEquals(SelectedRow, row)) SelectedRow = Rows.LastOrDefault();
 
         ClearRowsCommand.NotifyCanExecuteChanged();
         NotifyStatsChanged();
@@ -225,10 +216,7 @@ public sealed class MainWindowViewModel : ViewModelBase
     private void RemoveSelectedRow()
     {
         var rowToRemove = SelectedRow ?? Rows.LastOrDefault();
-        if (rowToRemove is null)
-        {
-            return;
-        }
+        if (rowToRemove is null) return;
 
         DetachRowEvents(rowToRemove);
         Rows.Remove(rowToRemove);
@@ -239,10 +227,7 @@ public sealed class MainWindowViewModel : ViewModelBase
 
     private void ClearRows()
     {
-        foreach (var row in Rows)
-        {
-            DetachRowEvents(row);
-        }
+        foreach (var row in Rows) DetachRowEvents(row);
 
         Rows.Clear();
         SelectedRow = null;
@@ -257,10 +242,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         foreach (var row in Rows)
         {
             row.Validate();
-            if (row.TryBuildValidData(out var data))
-            {
-                validData.Add(data);
-            }
+            if (row.TryBuildValidData(out var data)) validData.Add(data);
         }
 
         NotifyStatsChanged();
@@ -270,20 +252,12 @@ public sealed class MainWindowViewModel : ViewModelBase
     private void OnRowsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
         if (e.NewItems is not null)
-        {
             foreach (var item in e.NewItems.OfType<ProductRowViewModel>())
-            {
                 AttachRowEvents(item);
-            }
-        }
 
         if (e.OldItems is not null)
-        {
             foreach (var item in e.OldItems.OfType<ProductRowViewModel>())
-            {
                 DetachRowEvents(item);
-            }
-        }
 
         NotifyStatsChanged();
     }

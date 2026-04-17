@@ -15,10 +15,7 @@ public static class ZplBuilder
         foreach (var row in rows)
         {
             var safeName = EscapeField(row.Name);
-            if (safeName.Length > options.MaxProductNameLength)
-            {
-                safeName = safeName[..options.MaxProductNameLength];
-            }
+            if (safeName.Length > options.MaxProductNameLength) safeName = safeName[..options.MaxProductNameLength];
 
             for (var i = 0; i < row.Quantity; i++)
             {
@@ -29,11 +26,13 @@ public static class ZplBuilder
                 if (options.IncludeProductName && !string.IsNullOrWhiteSpace(safeName))
                 {
                     builder.AppendLine($"^FO30,20^A0N,32,32^FD{safeName}^FS");
-                    builder.AppendLine($"^FO30,70^BY2,2,{options.BarcodeHeightDots}^BEN,{options.BarcodeHeightDots},Y,N^FD{row.Ean}^FS");
+                    builder.AppendLine(
+                        $"^FO30,70^BY2,2,{options.BarcodeHeightDots}^BEN,{options.BarcodeHeightDots},Y,N^FD{row.Ean}^FS");
                 }
                 else
                 {
-                    builder.AppendLine($"^FO30,25^BY2,2,{options.BarcodeHeightDots}^BEN,{options.BarcodeHeightDots},Y,N^FD{row.Ean}^FS");
+                    builder.AppendLine(
+                        $"^FO30,25^BY2,2,{options.BarcodeHeightDots}^BEN,{options.BarcodeHeightDots},Y,N^FD{row.Ean}^FS");
                 }
 
                 builder.AppendLine("^XZ");

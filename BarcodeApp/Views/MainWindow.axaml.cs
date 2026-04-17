@@ -16,10 +16,7 @@ public partial class MainWindow : Window
 
     private async void ImportFileButton_OnClick(object? sender, RoutedEventArgs e)
     {
-        if (StorageProvider is null)
-        {
-            return;
-        }
+        if (StorageProvider is null) return;
 
         var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
@@ -40,10 +37,7 @@ public partial class MainWindow : Window
 
     private async void ExportZplButton_OnClick(object? sender, RoutedEventArgs e)
     {
-        if (StorageProvider is null)
-        {
-            return;
-        }
+        if (StorageProvider is null) return;
 
         var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
         {
@@ -64,10 +58,7 @@ public partial class MainWindow : Window
 
     private void RemoveRowButton_OnClick(object? sender, RoutedEventArgs e)
     {
-        if (sender is not Button { Tag: ProductRowViewModel row })
-        {
-            return;
-        }
+        if (sender is not Button { Tag: ProductRowViewModel row }) return;
 
         ViewModel?.RemoveRow(row);
     }

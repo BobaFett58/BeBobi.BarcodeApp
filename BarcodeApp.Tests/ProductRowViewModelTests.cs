@@ -37,7 +37,7 @@ public sealed class ProductRowViewModelTests
     {
         var row = ProductRowViewModel.CreateEmpty();
 
-        var ok = row.TryBuildValidData(out var _);
+        var ok = row.TryBuildValidData(out _);
 
         Assert.False(ok);
     }

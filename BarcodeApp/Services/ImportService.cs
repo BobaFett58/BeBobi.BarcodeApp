@@ -27,10 +27,7 @@ public sealed class ImportService
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
-        if (!File.Exists(path))
-        {
-            throw new FileNotFoundException("Input file was not found.", path);
-        }
+        if (!File.Exists(path)) throw new FileNotFoundException("Input file was not found.", path);
 
         var extension = Path.GetExtension(path).ToLowerInvariant();
         var rows = extension switch
@@ -66,10 +63,7 @@ public sealed class ImportService
         while (csv.Read())
         {
             var raw = csv.Parser.Record;
-            if (raw is null)
-            {
-                continue;
-            }
+            if (raw is null) continue;
 
             rows.Add(raw.Select(cell => cell?.Trim() ?? string.Empty).ToArray());
         }
@@ -90,10 +84,7 @@ public sealed class ImportService
                 .Select(cell => cell.GetFormattedString().Trim())
                 .ToArray();
 
-            if (values.All(string.IsNullOrWhiteSpace))
-            {
-                continue;
-            }
+            if (values.All(string.IsNullOrWhiteSpace)) continue;
 
             rows.Add(values);
         }
@@ -104,13 +95,11 @@ public sealed class ImportService
     private static ImportResult ParseRows(List<string[]> rows)
     {
         if (rows.Count == 0)
-        {
             return new ImportResult
             {
                 Rows = [],
                 Warnings = ["Input file has no data rows."]
             };
-        }
 
         var warnings = new List<string>();
         var first = rows[0];
@@ -132,10 +121,8 @@ public sealed class ImportService
             var name = GetCell(row, mapping.Value.NameIndex);
             var quantity = GetCell(row, mapping.Value.QuantityIndex);
 
-            if (string.IsNullOrWhiteSpace(ean) && string.IsNullOrWhiteSpace(name) && string.IsNullOrWhiteSpace(quantity))
-            {
-                continue;
-            }
+            if (string.IsNullOrWhiteSpace(ean) && string.IsNullOrWhiteSpace(name) &&
+                string.IsNullOrWhiteSpace(quantity)) continue;
 
             importedRows.Add(new ProductInputRow
             {
@@ -146,10 +133,7 @@ public sealed class ImportService
             });
         }
 
-        if (importedRows.Count == 0)
-        {
-            warnings.Add("No rows with product data were found after parsing.");
-        }
+        if (importedRows.Count == 0) warnings.Add("No rows with product data were found after parsing.");
 
         return new ImportResult
         {
@@ -164,10 +148,7 @@ public sealed class ImportService
     {
         hasHeader = false;
 
-        if (firstRow.Count == 0)
-        {
-            return null;
-        }
+        if (firstRow.Count == 0) return null;
 
         int? ean = null;
         int? name = null;
@@ -177,17 +158,10 @@ public sealed class ImportService
             var normalized = NormalizeHeader(firstRow[i]);
 
             if (EanAliases.Contains(normalized))
-            {
                 ean = i;
-            }
             else if (NameAliases.Contains(normalized))
-            {
                 name = i;
-            }
-            else if (QuantityAliases.Contains(normalized))
-            {
-                quantity = i;
-            }
+            else if (QuantityAliases.Contains(normalized)) quantity = i;
         }
 
         if (ean.HasValue && name.HasValue && quantity.HasValue)
@@ -229,20 +203,14 @@ public sealed class ImportService
 
     private static string GetCell(IReadOnlyList<string> row, int index)
     {
-        if (index < 0 || index >= row.Count)
-        {
-            return string.Empty;
-        }
+        if (index < 0 || index >= row.Count) return string.Empty;
 
         return row[index].Trim();
     }
 
     private static char DetectDelimiter(string line)
     {
-        if (string.IsNullOrWhiteSpace(line))
-        {
-            return ',';
-        }
+        if (string.IsNullOrWhiteSpace(line)) return ',';
 
         var candidates = new[] { ';', ',', '\t' };
         var best = candidates

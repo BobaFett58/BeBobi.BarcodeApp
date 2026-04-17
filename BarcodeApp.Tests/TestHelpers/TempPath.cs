@@ -10,23 +10,20 @@ public sealed class TempPath : IDisposable
 
     public string DirectoryPath { get; }
 
-    public string GetFilePath(string fileName)
-    {
-        return Path.Combine(DirectoryPath, fileName);
-    }
-
     public void Dispose()
     {
         try
         {
-            if (Directory.Exists(DirectoryPath))
-            {
-                Directory.Delete(DirectoryPath, recursive: true);
-            }
+            if (Directory.Exists(DirectoryPath)) Directory.Delete(DirectoryPath, true);
         }
         catch
         {
             // Keep tests resilient if cleanup is blocked by OS file locks.
         }
+    }
+
+    public string GetFilePath(string fileName)
+    {
+        return Path.Combine(DirectoryPath, fileName);
     }
 }

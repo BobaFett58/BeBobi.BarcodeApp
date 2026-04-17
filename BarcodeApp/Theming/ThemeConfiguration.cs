@@ -15,10 +15,7 @@ public static class ThemeConfiguration
 
     public static AppThemeMode Parse(string? value)
     {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return AppThemeMode.System;
-        }
+        if (string.IsNullOrWhiteSpace(value)) return AppThemeMode.System;
 
         return value.Trim().ToLowerInvariant() switch
         {
