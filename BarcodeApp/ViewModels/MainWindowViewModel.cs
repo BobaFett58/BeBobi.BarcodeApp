@@ -10,17 +10,46 @@ namespace BarcodeApp.ViewModels;
 public sealed class MainWindowViewModel : ViewModelBase
 {
     private readonly ImportService _importService = new();
+    private readonly IAppSettingsStore _settingsStore;
+    private readonly List<PrinterProfileSettings> _printerProfiles = [];
+    private bool _isApplyingSettings;
+    private bool _isApplyingProfile;
 
-    public MainWindowViewModel()
+    private const int DefaultPrinterDpi = 203;
+    private const string DefaultLabelWidthDotsText = "600";
+    private const string DefaultBarcodeHeightDotsText = "110";
+    private const string DefaultLabelHeightDotsText = "0";
+    private const string DefaultProfileName = "Domyslny";
+
+    public MainWindowViewModel(IAppSettingsStore? settingsStore = null)
     {
+        _settingsStore = settingsStore ?? new FileAppSettingsStore();
+
         Rows.CollectionChanged += OnRowsCollectionChanged;
 
         AddRowCommand = new RelayCommand(AddRow);
         RemoveSelectedRowCommand = new RelayCommand(RemoveSelectedRow, () => Rows.Count > 0);
         ClearRowsCommand = new RelayCommand(ClearRows, () => Rows.Count > 0);
+        ResetSettingsCommand = new RelayCommand(ResetSettingsToDefaults);
+        AddProfileCommand = new RelayCommand(AddProfile);
+        RemoveProfileCommand = new RelayCommand(RemoveCurrentProfile, () => PrinterProfileNames.Count > 1);
+        Apply203DpiPresetCommand = new RelayCommand(() => ApplyDpiPreset(203));
+        Apply300DpiPresetCommand = new RelayCommand(() => ApplyDpiPreset(300));
+
+        ApplySettings(_settingsStore.Load());
     }
 
     public ObservableCollection<ProductRowViewModel> Rows { get; } = [];
+
+    public ObservableCollection<string> PrinterProfileNames { get; } = [];
+
+    public IReadOnlyList<BarcodeSymbology> BarcodeTypeOptions { get; } =
+    [
+        BarcodeSymbology.Ean13,
+        BarcodeSymbology.Ean8,
+        BarcodeSymbology.UpcA,
+        BarcodeSymbology.Code128
+    ];
 
     public ProductRowViewModel? SelectedRow
     {
@@ -40,8 +69,49 @@ public sealed class MainWindowViewModel : ViewModelBase
     public bool? IncludeProductName
     {
         get;
-        set => SetProperty(ref field, value);
+        set
+        {
+            if (SetProperty(ref field, value))
+                SaveSettings();
+        }
     } = true;
+
+    public string SelectedPrinterProfileName
+    {
+        get;
+        set
+        {
+            if (!SetProperty(ref field, value))
+                return;
+
+            if (_isApplyingSettings)
+                return;
+
+            var selected = FindProfile(value);
+            if (selected is null)
+                return;
+
+            ApplyProfileToEditor(selected);
+            SaveSettings();
+            RemoveProfileCommand.NotifyCanExecuteChanged();
+        }
+    } = DefaultProfileName;
+
+    public BarcodeSymbology SelectedBarcodeType
+    {
+        get;
+        set
+        {
+            if (!SetProperty(ref field, value))
+                return;
+
+            if (_isApplyingSettings)
+                return;
+
+            ApplyBarcodeTypeToRows(value);
+            SaveSettings();
+        }
+    } = BarcodeSymbology.Ean13;
 
     // ── Label size settings ──────────────────────────────────────────────────
 
@@ -55,9 +125,10 @@ public sealed class MainWindowViewModel : ViewModelBase
                 OnPropertyChanged(nameof(LabelWidthMm));
                 OnPropertyChanged(nameof(LabelHeightMm));
                 OnPropertyChanged(nameof(DpiHint));
+                SaveSettings();
             }
         }
-    } = 203;
+    } = DefaultPrinterDpi;
 
     public string LabelWidthDotsText
     {
@@ -65,15 +136,22 @@ public sealed class MainWindowViewModel : ViewModelBase
         set
         {
             if (SetProperty(ref field, value))
+            {
                 OnPropertyChanged(nameof(LabelWidthMm));
+                SaveSettings();
+            }
         }
-    } = "600";
+    } = DefaultLabelWidthDotsText;
 
     public string BarcodeHeightDotsText
     {
         get;
-        set => SetProperty(ref field, value);
-    } = "110";
+        set
+        {
+            if (SetProperty(ref field, value))
+                SaveSettings();
+        }
+    } = DefaultBarcodeHeightDotsText;
 
     public string LabelHeightDotsText
     {
@@ -81,9 +159,12 @@ public sealed class MainWindowViewModel : ViewModelBase
         set
         {
             if (SetProperty(ref field, value))
+            {
                 OnPropertyChanged(nameof(LabelHeightMm));
+                SaveSettings();
+            }
         }
-    } = "0";
+    } = DefaultLabelHeightDotsText;
 
     public string LabelWidthMm =>
         int.TryParse(LabelWidthDotsText, out var w) && PrinterDpi > 0
@@ -103,6 +184,16 @@ public sealed class MainWindowViewModel : ViewModelBase
             _ => $"{PrinterDpi} dpi"
         };
 
+    public string BarcodeTypeHint =>
+        SelectedBarcodeType switch
+        {
+            BarcodeSymbology.Ean13 => "EAN-13: 13 cyfr (w ZPL przekazywane 12 cyfr danych)",
+            BarcodeSymbology.Ean8 => "EAN-8: 8 cyfr (w ZPL przekazywane 7 cyfr danych)",
+            BarcodeSymbology.UpcA => "UPC-A: 12 cyfr (w ZPL przekazywane 11 cyfr danych)",
+            BarcodeSymbology.Code128 => "Code 128: tekst/alnum, 1-48 znaków",
+            _ => string.Empty
+        };
+
     public int ValidRowsCount => Rows.Count(row => row.IsValid);
 
     public int InvalidRowsCount => Rows.Count - ValidRowsCount;
@@ -117,6 +208,16 @@ public sealed class MainWindowViewModel : ViewModelBase
     public IRelayCommand RemoveSelectedRowCommand { get; }
 
     public IRelayCommand ClearRowsCommand { get; }
+
+    public IRelayCommand ResetSettingsCommand { get; }
+
+    public IRelayCommand AddProfileCommand { get; }
+
+    public IRelayCommand RemoveProfileCommand { get; }
+
+    public IRelayCommand Apply203DpiPresetCommand { get; }
+
+    public IRelayCommand Apply300DpiPresetCommand { get; }
 
     public void ImportFromPath(string? path)
     {
@@ -134,6 +235,7 @@ public sealed class MainWindowViewModel : ViewModelBase
             foreach (var row in result.Rows)
             {
                 var vmRow = ProductRowViewModel.FromInput(row);
+                vmRow.BarcodeType = SelectedBarcodeType;
                 AttachRowEvents(vmRow);
                 Rows.Add(vmRow);
             }
@@ -174,12 +276,19 @@ public sealed class MainWindowViewModel : ViewModelBase
             return;
         }
 
+        if (!TryBuildValidatedOptions(out var options, out var validationMessage))
+        {
+            StatusMessage = validationMessage;
+            return;
+        }
+
         var zpl = ZplBuilder.Build(validData, new ZplBuildOptions
         {
+            BarcodeType = SelectedBarcodeType,
             IncludeProductName = IncludeProductName ?? true,
-            LabelWidthDots = int.TryParse(LabelWidthDotsText, out var w1) && w1 > 0 ? w1 : 600,
-            BarcodeHeightDots = int.TryParse(BarcodeHeightDotsText, out var bh1) && bh1 > 0 ? bh1 : 110,
-            LabelHeightDots = int.TryParse(LabelHeightDotsText, out var lh1) && lh1 > 0 ? lh1 : 0
+            LabelWidthDots = options.LabelWidthDots,
+            BarcodeHeightDots = options.BarcodeHeightDots,
+            LabelHeightDots = options.LabelHeightDots
         });
 
         File.WriteAllText(path, zpl, Encoding.ASCII);
@@ -203,6 +312,7 @@ public sealed class MainWindowViewModel : ViewModelBase
     private void AddRow()
     {
         var row = ProductRowViewModel.CreateEmpty();
+        row.BarcodeType = SelectedBarcodeType;
         AttachRowEvents(row);
         Rows.Add(row);
         SelectedRow = row;
@@ -230,6 +340,284 @@ public sealed class MainWindowViewModel : ViewModelBase
         SelectedRow = null;
         StatusMessage = "Wiersze wyczyszczone.";
         ClearRowsCommand.NotifyCanExecuteChanged();
+        NotifyStatsChanged();
+    }
+
+    private void ResetSettingsToDefaults()
+    {
+        ApplyProfile(new PrinterProfileSettings
+        {
+            Name = SelectedPrinterProfileName,
+            BarcodeType = BarcodeSymbology.Ean13,
+            PrinterDpi = DefaultPrinterDpi,
+            LabelWidthDotsText = DefaultLabelWidthDotsText,
+            BarcodeHeightDotsText = DefaultBarcodeHeightDotsText,
+            LabelHeightDotsText = DefaultLabelHeightDotsText
+        });
+
+        IncludeProductName = true;
+
+        SaveSettings();
+        StatusMessage = $"Przywrócono domyślne ustawienia profilu '{SelectedPrinterProfileName}'.";
+    }
+
+    private void ApplySettings(AppUserSettings settings)
+    {
+        _isApplyingSettings = true;
+        try
+        {
+            IncludeProductName = settings.IncludeProductName;
+            SelectedBarcodeType = settings.SelectedBarcodeType;
+
+            _printerProfiles.Clear();
+            var loadedProfiles = settings.PrinterProfiles.Where(p => !string.IsNullOrWhiteSpace(p.Name)).ToList();
+            if (loadedProfiles.Count == 0)
+            {
+                // Migrate from legacy flat settings to profile-based configuration.
+                loadedProfiles.Add(new PrinterProfileSettings
+                {
+                    Name = DefaultProfileName,
+                    BarcodeType = settings.SelectedBarcodeType,
+                    PrinterDpi = settings.PrinterDpi > 0 ? settings.PrinterDpi : DefaultPrinterDpi,
+                    LabelWidthDotsText = string.IsNullOrWhiteSpace(settings.LabelWidthDotsText)
+                        ? DefaultLabelWidthDotsText
+                        : settings.LabelWidthDotsText,
+                    BarcodeHeightDotsText = string.IsNullOrWhiteSpace(settings.BarcodeHeightDotsText)
+                        ? DefaultBarcodeHeightDotsText
+                        : settings.BarcodeHeightDotsText,
+                    LabelHeightDotsText = string.IsNullOrWhiteSpace(settings.LabelHeightDotsText)
+                        ? DefaultLabelHeightDotsText
+                        : settings.LabelHeightDotsText
+                });
+            }
+
+            _printerProfiles.AddRange(loadedProfiles.Select(CloneProfile));
+            RefreshProfileNames();
+
+            var activeProfileName = string.IsNullOrWhiteSpace(settings.ActivePrinterProfileName)
+                ? _printerProfiles[0].Name
+                : settings.ActivePrinterProfileName;
+            var activeProfile = FindProfile(activeProfileName) ?? _printerProfiles[0];
+
+            SelectedPrinterProfileName = activeProfile.Name;
+            ApplyProfileToEditor(activeProfile);
+            OnPropertyChanged(nameof(BarcodeTypeHint));
+        }
+        finally
+        {
+            _isApplyingSettings = false;
+            RemoveProfileCommand.NotifyCanExecuteChanged();
+        }
+    }
+
+    private void SaveSettings()
+    {
+        if (_isApplyingSettings || _isApplyingProfile)
+            return;
+
+        UpdateCurrentProfileFromEditor();
+
+        _settingsStore.Save(new AppUserSettings
+        {
+            IncludeProductName = IncludeProductName ?? true,
+            SelectedBarcodeType = SelectedBarcodeType,
+            ActivePrinterProfileName = SelectedPrinterProfileName,
+            PrinterProfiles = _printerProfiles.Select(CloneProfile).ToList(),
+            // Legacy fields are still written for backward compatibility.
+            PrinterDpi = PrinterDpi,
+            LabelWidthDotsText = LabelWidthDotsText,
+            BarcodeHeightDotsText = BarcodeHeightDotsText,
+            LabelHeightDotsText = LabelHeightDotsText
+        });
+    }
+
+    private void AddProfile()
+    {
+        UpdateCurrentProfileFromEditor();
+
+        var uniqueName = BuildUniqueProfileName("Profil");
+        var newProfile = new PrinterProfileSettings
+        {
+            Name = uniqueName,
+            BarcodeType = SelectedBarcodeType,
+            PrinterDpi = PrinterDpi,
+            LabelWidthDotsText = LabelWidthDotsText,
+            BarcodeHeightDotsText = BarcodeHeightDotsText,
+            LabelHeightDotsText = LabelHeightDotsText
+        };
+
+        _printerProfiles.Add(newProfile);
+        RefreshProfileNames();
+        SelectedPrinterProfileName = newProfile.Name;
+        SaveSettings();
+        StatusMessage = $"Dodano profil '{newProfile.Name}'.";
+        RemoveProfileCommand.NotifyCanExecuteChanged();
+    }
+
+    private void RemoveCurrentProfile()
+    {
+        if (_printerProfiles.Count <= 1)
+            return;
+
+        var toRemove = FindProfile(SelectedPrinterProfileName);
+        if (toRemove is null)
+            return;
+
+        var removedName = toRemove.Name;
+        _printerProfiles.Remove(toRemove);
+        RefreshProfileNames();
+        SelectedPrinterProfileName = _printerProfiles[0].Name;
+        ApplyProfileToEditor(_printerProfiles[0]);
+        SaveSettings();
+        StatusMessage = $"Usunięto profil '{removedName}'.";
+        RemoveProfileCommand.NotifyCanExecuteChanged();
+    }
+
+    private void ApplyDpiPreset(int dpi)
+    {
+        if (dpi is not (203 or 300))
+            return;
+
+        PrinterDpi = dpi;
+        LabelWidthDotsText = dpi == 203 ? "600" : "900";
+        BarcodeHeightDotsText = dpi == 203 ? "110" : "165";
+        LabelHeightDotsText = "0";
+
+        SaveSettings();
+        StatusMessage = $"Zastosowano preset {dpi} dpi dla profilu '{SelectedPrinterProfileName}'.";
+    }
+
+    private void RefreshProfileNames()
+    {
+        PrinterProfileNames.Clear();
+        foreach (var profile in _printerProfiles)
+            PrinterProfileNames.Add(profile.Name);
+    }
+
+    private PrinterProfileSettings? FindProfile(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            return null;
+
+        return _printerProfiles.FirstOrDefault(p =>
+            string.Equals(p.Name, name, StringComparison.Ordinal));
+    }
+
+    private void ApplyProfileToEditor(PrinterProfileSettings profile)
+    {
+        _isApplyingProfile = true;
+        try
+        {
+            ApplyProfile(profile);
+        }
+        finally
+        {
+            _isApplyingProfile = false;
+        }
+    }
+
+    private void ApplyProfile(PrinterProfileSettings profile)
+    {
+        SelectedBarcodeType = profile.BarcodeType;
+        PrinterDpi = profile.PrinterDpi > 0 ? profile.PrinterDpi : DefaultPrinterDpi;
+        LabelWidthDotsText = string.IsNullOrWhiteSpace(profile.LabelWidthDotsText)
+            ? DefaultLabelWidthDotsText
+            : profile.LabelWidthDotsText;
+        BarcodeHeightDotsText = string.IsNullOrWhiteSpace(profile.BarcodeHeightDotsText)
+            ? DefaultBarcodeHeightDotsText
+            : profile.BarcodeHeightDotsText;
+        LabelHeightDotsText = string.IsNullOrWhiteSpace(profile.LabelHeightDotsText)
+            ? DefaultLabelHeightDotsText
+            : profile.LabelHeightDotsText;
+    }
+
+    private void UpdateCurrentProfileFromEditor()
+    {
+        var profile = FindProfile(SelectedPrinterProfileName);
+        if (profile is null)
+            return;
+
+        profile.BarcodeType = SelectedBarcodeType;
+        profile.PrinterDpi = PrinterDpi;
+        profile.LabelWidthDotsText = LabelWidthDotsText;
+        profile.BarcodeHeightDotsText = BarcodeHeightDotsText;
+        profile.LabelHeightDotsText = LabelHeightDotsText;
+    }
+
+    private static PrinterProfileSettings CloneProfile(PrinterProfileSettings source)
+    {
+        return new PrinterProfileSettings
+        {
+            Name = source.Name,
+            BarcodeType = source.BarcodeType,
+            PrinterDpi = source.PrinterDpi,
+            LabelWidthDotsText = source.LabelWidthDotsText,
+            BarcodeHeightDotsText = source.BarcodeHeightDotsText,
+            LabelHeightDotsText = source.LabelHeightDotsText
+        };
+    }
+
+    private string BuildUniqueProfileName(string baseName)
+    {
+        var suffix = 1;
+        var candidate = baseName;
+
+        while (_printerProfiles.Any(p => string.Equals(p.Name, candidate, StringComparison.Ordinal)))
+        {
+            suffix++;
+            candidate = $"{baseName} {suffix}";
+        }
+
+        return candidate;
+    }
+
+    private bool TryBuildValidatedOptions(out ValidatedBuildOptions options, out string message)
+    {
+        options = default;
+
+        if (PrinterDpi is < 100 or > 600)
+        {
+            message = "DPI drukarki musi być w zakresie 100-600.";
+            return false;
+        }
+
+        if (!int.TryParse(LabelWidthDotsText, out var width) || width is < 120 or > 2000)
+        {
+            message = "Szerokość etykiety (dots) musi być liczbą w zakresie 120-2000.";
+            return false;
+        }
+
+        if (!int.TryParse(BarcodeHeightDotsText, out var barcodeHeight) || barcodeHeight is < 40 or > 800)
+        {
+            message = "Wysokość kodu (dots) musi być liczbą w zakresie 40-800.";
+            return false;
+        }
+
+        if (!int.TryParse(LabelHeightDotsText, out var labelHeight) || labelHeight < 0)
+        {
+            message = "Wysokość etykiety (dots) musi być liczbą >= 0.";
+            return false;
+        }
+
+        if (labelHeight > 0 && labelHeight < barcodeHeight + 40)
+        {
+            message = "Wysokość etykiety jest zbyt mała względem wysokości kodu. Zwiększ wysokość etykiety lub ustaw 0 (auto).";
+            return false;
+        }
+
+        options = new ValidatedBuildOptions(width, barcodeHeight, labelHeight);
+        message = string.Empty;
+        return true;
+    }
+
+    private readonly record struct ValidatedBuildOptions(int LabelWidthDots, int BarcodeHeightDots, int LabelHeightDots);
+
+    private void ApplyBarcodeTypeToRows(BarcodeSymbology type)
+    {
+        foreach (var row in Rows)
+            row.BarcodeType = type;
+
+        OnPropertyChanged(nameof(BarcodeTypeHint));
         NotifyStatsChanged();
     }
 

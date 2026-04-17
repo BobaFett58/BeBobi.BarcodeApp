@@ -69,4 +69,42 @@ public sealed class ProductRowViewModelTests
 
         Assert.True(raised > 0);
     }
+
+    [Fact]
+    public void Validate_Ean8_IsValidFor8Digits()
+    {
+        var row = ProductRowViewModel.CreateEmpty();
+        row.BarcodeType = BarcodeSymbology.Ean8;
+        row.Ean = "55123457";
+        row.Name = "Produkt";
+        row.QuantityText = "1";
+
+        Assert.True(row.IsValid);
+        Assert.Equal("OK", row.ValidationMessage);
+    }
+
+    [Fact]
+    public void Validate_UpcA_IsInvalidForShortValue()
+    {
+        var row = ProductRowViewModel.CreateEmpty();
+        row.BarcodeType = BarcodeSymbology.UpcA;
+        row.Ean = "12345";
+        row.Name = "Produkt";
+        row.QuantityText = "1";
+
+        Assert.False(row.IsValid);
+        Assert.Contains("UPC-A", row.ValidationMessage, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Validate_Code128_AllowsAlnumText()
+    {
+        var row = ProductRowViewModel.CreateEmpty();
+        row.BarcodeType = BarcodeSymbology.Code128;
+        row.Ean = "ABC-123-XYZ";
+        row.Name = "Produkt";
+        row.QuantityText = "2";
+
+        Assert.True(row.IsValid);
+    }
 }

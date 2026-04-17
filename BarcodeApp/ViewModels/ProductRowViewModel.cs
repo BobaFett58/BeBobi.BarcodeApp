@@ -5,6 +5,15 @@ namespace BarcodeApp.ViewModels;
 
 public sealed class ProductRowViewModel : ViewModelBase
 {
+    public BarcodeSymbology BarcodeType
+    {
+        get;
+        set
+        {
+            if (SetProperty(ref field, value)) Validate();
+        }
+    } = BarcodeSymbology.Ean13;
+
     public string Ean
     {
         get;
@@ -59,7 +68,8 @@ public sealed class ProductRowViewModel : ViewModelBase
         {
             Ean = input.Ean,
             Name = input.Name,
-            QuantityText = input.QuantityText
+            QuantityText = input.QuantityText,
+            BarcodeType = BarcodeSymbology.Ean13
         };
     }
 
@@ -88,12 +98,13 @@ public sealed class ProductRowViewModel : ViewModelBase
         var errors = new List<string>();
         var normalizedEan = Ean.Trim();
 
-        if (!Ean13Validator.IsValid(normalizedEan)) errors.Add("EAN must contain 13 digits with valid checksum.");
+        if (!BarcodeValueRules.IsValid(normalizedEan, BarcodeType))
+            errors.Add(BarcodeValueRules.ValidationMessage(BarcodeType));
 
-        if (string.IsNullOrWhiteSpace(Name)) errors.Add("Product name is required.");
+        if (string.IsNullOrWhiteSpace(Name)) errors.Add("Nazwa produktu jest wymagana.");
 
         if (!int.TryParse(QuantityText.Trim(), out var qty) || qty <= 0)
-            errors.Add("Quantity must be a positive integer.");
+            errors.Add("Ilość musi być dodatnią liczbą całkowitą.");
 
         IsValid = errors.Count == 0;
         ValidationMessage = IsValid ? "OK" : string.Join(" | ", errors);

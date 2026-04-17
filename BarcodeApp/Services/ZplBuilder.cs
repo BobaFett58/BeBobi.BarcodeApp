@@ -16,6 +16,8 @@ public static class ZplBuilder
         {
             var safeName = EscapeField(row.Name);
             if (safeName.Length > options.MaxProductNameLength) safeName = safeName[..options.MaxProductNameLength];
+            var barcodeFieldData = BarcodeValueRules.BuildZplFieldData(row.Ean, options.BarcodeType);
+            var barcodeCommand = BuildBarcodeCommand(options.BarcodeType, options.BarcodeHeightDots, barcodeFieldData);
 
             for (var i = 0; i < row.Quantity; i++)
             {
@@ -28,13 +30,11 @@ public static class ZplBuilder
                 if (options.IncludeProductName && !string.IsNullOrWhiteSpace(safeName))
                 {
                     builder.AppendLine($"^FO30,20^A0N,32,32^FD{safeName}^FS");
-                    builder.AppendLine(
-                        $"^FO30,70^BY2,2,{options.BarcodeHeightDots}^BEN,{options.BarcodeHeightDots},Y,N^FD{row.Ean}^FS");
+                    builder.AppendLine($"^FO30,70{barcodeCommand}");
                 }
                 else
                 {
-                    builder.AppendLine(
-                        $"^FO30,25^BY2,2,{options.BarcodeHeightDots}^BEN,{options.BarcodeHeightDots},Y,N^FD{row.Ean}^FS");
+                    builder.AppendLine($"^FO30,25{barcodeCommand}");
                 }
 
                 builder.AppendLine("^XZ");
@@ -50,5 +50,17 @@ public static class ZplBuilder
             .Replace("^", string.Empty, StringComparison.Ordinal)
             .Replace("~", string.Empty, StringComparison.Ordinal)
             .Trim();
+    }
+
+    private static string BuildBarcodeCommand(BarcodeSymbology type, int height, string fieldData)
+    {
+        return type switch
+        {
+            BarcodeSymbology.Ean13 => $"^BY2,2,{height}^BEN,{height},Y,N^FD{fieldData}^FS",
+            BarcodeSymbology.Ean8 => $"^BY2,2,{height}^B8N,{height},Y,N^FD{fieldData}^FS",
+            BarcodeSymbology.UpcA => $"^BY2,2,{height}^BUN,{height},Y,N^FD{fieldData}^FS",
+            BarcodeSymbology.Code128 => $"^BY2,2,{height}^BCN,{height},Y,N,N^FD{fieldData}^FS",
+            _ => $"^BY2,2,{height}^BEN,{height},Y,N^FD{fieldData}^FS"
+        };
     }
 }

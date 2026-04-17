@@ -2,6 +2,8 @@ namespace BarcodeApp.Models;
 
 public sealed class ZplBuildOptions
 {
+    public BarcodeSymbology BarcodeType { get; init; } = BarcodeSymbology.Ean13;
+
     public bool IncludeProductName { get; init; } = true;
 
     public int MaxProductNameLength { get; init; } = 42;

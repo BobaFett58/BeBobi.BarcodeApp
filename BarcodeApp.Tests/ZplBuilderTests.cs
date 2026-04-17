@@ -22,7 +22,7 @@ public sealed class ZplBuilderTests
 
         Assert.Equal(3, CountOccurrences(zpl, "^XA"));
         Assert.Equal(3, CountOccurrences(zpl, "^XZ"));
-        Assert.Equal(3, CountOccurrences(zpl, "^FD5903949788051^FS"));
+        Assert.Equal(3, CountOccurrences(zpl, "^FD590394978805^FS"));
     }
 
     [Fact]
@@ -44,7 +44,7 @@ public sealed class ZplBuilderTests
         });
 
         Assert.DoesNotContain("^A0N,32,32", zpl);
-        Assert.Contains("^FD5903949788051^FS", zpl);
+        Assert.Contains("^FD590394978805^FS", zpl);
     }
 
     [Fact]
@@ -118,6 +118,74 @@ public sealed class ZplBuilderTests
 
         Assert.Contains("^PW800", zpl);
         Assert.Contains("^BY2,2,150^BEN", zpl);
+    }
+
+    [Fact]
+    public void Build_ForEan13_Uses12DigitPayloadForBE()
+    {
+        var rows = new[]
+        {
+            new ValidProductData { Ean = "5012345678900", Name = "Test", Quantity = 1 }
+        };
+
+        var zpl = ZplBuilder.Build(rows, new ZplBuildOptions { IncludeProductName = false });
+
+        Assert.Contains("^FD501234567890^FS", zpl);
+        Assert.DoesNotContain("^FD5012345678900^FS", zpl);
+    }
+
+    [Fact]
+    public void Build_ForEan8_UsesB8And7DigitPayload()
+    {
+        var rows = new[]
+        {
+            new ValidProductData { Ean = "55123457", Name = "Test", Quantity = 1 }
+        };
+
+        var zpl = ZplBuilder.Build(rows, new ZplBuildOptions
+        {
+            IncludeProductName = false,
+            BarcodeType = BarcodeSymbology.Ean8
+        });
+
+        Assert.Contains("^B8N", zpl);
+        Assert.Contains("^FD5512345^FS", zpl);
+    }
+
+    [Fact]
+    public void Build_ForUpcA_UsesBUAnd11DigitPayload()
+    {
+        var rows = new[]
+        {
+            new ValidProductData { Ean = "036000291452", Name = "Test", Quantity = 1 }
+        };
+
+        var zpl = ZplBuilder.Build(rows, new ZplBuildOptions
+        {
+            IncludeProductName = false,
+            BarcodeType = BarcodeSymbology.UpcA
+        });
+
+        Assert.Contains("^BUN", zpl);
+        Assert.Contains("^FD03600029145^FS", zpl);
+    }
+
+    [Fact]
+    public void Build_ForCode128_UsesBCAndFullPayload()
+    {
+        var rows = new[]
+        {
+            new ValidProductData { Ean = "ABC12345XYZ", Name = "Test", Quantity = 1 }
+        };
+
+        var zpl = ZplBuilder.Build(rows, new ZplBuildOptions
+        {
+            IncludeProductName = false,
+            BarcodeType = BarcodeSymbology.Code128
+        });
+
+        Assert.Contains("^BCN", zpl);
+        Assert.Contains("^FDABC12345XYZ^FS", zpl);
     }
 
     private static int CountOccurrences(string content, string token)
