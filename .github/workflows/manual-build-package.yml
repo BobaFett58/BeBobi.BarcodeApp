@@ -1,0 +1,107 @@
+name: Manual Build Package
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Build target
+        required: true
+        type: choice
+        options:
+          - macos-silicon
+          - macos-intel
+          - windows-64
+          - all
+        default: windows-64
+
+jobs:
+  build-and-package:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore
+        run: dotnet restore BarcodeApp.sln
+
+      - name: Publish selected target(s)
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p QiviLabel
+
+          build_target() {
+            local target_name="$1"
+            local rid="$2"
+            local output_dir="QiviLabel/${target_name}"
+
+            echo "Publishing ${target_name} (${rid})..."
+            dotnet publish BarcodeApp/BarcodeApp.csproj \
+              -c Release \
+              -r "${rid}" \
+              --self-contained true \
+              -o "${output_dir}" \
+              /p:PublishSingleFile=true \
+              /p:PublishTrimmed=false
+          }
+
+          case "${{ github.event.inputs.target }}" in
+            macos-silicon)
+              build_target "macos-silicon" "osx-arm64"
+              ;;
+            macos-intel)
+              build_target "macos-intel" "osx-x64"
+              ;;
+            windows-64|windows-x64)
+              build_target "windows-x64" "win-x64"
+              ;;
+            all)
+              build_target "macos-silicon" "osx-arm64"
+              build_target "macos-intel" "osx-x64"
+              build_target "windows-x64" "win-x64"
+              ;;
+            *)
+              echo "Unknown target: ${{ github.event.inputs.target }}"
+              exit 1
+              ;;
+          esac
+
+      - name: Add README
+        shell: bash
+        run: |
+          cat > QiviLabel/README.txt << 'EOF'
+          QiviLabel - Test package
+
+          This package may contain one or more builds depending on selected target:
+          - macos-silicon  (Apple Silicon M1/M2/M3)
+          - macos-intel    (Intel Mac)
+          - windows-x64    (Windows 64-bit)
+
+          Run instructions:
+          1. Open the folder for your system.
+          2. Start the app executable.
+
+          Notes:
+          - This is a self-contained build.
+          - .NET runtime installation is not required.
+          - OS security prompts (Gatekeeper/SmartScreen) may appear on first run.
+          EOF
+
+      - name: Zip package
+        shell: bash
+        run: |
+          zip -r QiviLabel-${{ github.event.inputs.target }}.zip QiviLabel
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: QiviLabel-${{ github.event.inputs.target }}
+          path: QiviLabel-${{ github.event.inputs.target }}.zip
+          if-no-files-found: error
