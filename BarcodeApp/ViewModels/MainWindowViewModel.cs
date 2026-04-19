@@ -11,19 +11,28 @@ public sealed class MainWindowViewModel : ViewModelBase
 {
     private readonly ImportService _importService = new();
     private readonly IAppSettingsStore _settingsStore;
+    private readonly IZebraPrinterService _zebraPrinterService;
+    private readonly ISystemQueuePrinterService _systemQueuePrinterService;
     private readonly List<PrinterProfileSettings> _printerProfiles = [];
     private bool _isApplyingSettings;
     private bool _isApplyingProfile;
+    private bool _isPrintInProgress;
 
     private const int DefaultPrinterDpi = 203;
     private const string DefaultLabelWidthDotsText = "600";
     private const string DefaultBarcodeHeightDotsText = "110";
     private const string DefaultLabelHeightDotsText = "0";
+    private const string DefaultPrinterPortText = "9100";
     private const string DefaultProfileName = "Domyslny";
 
-    public MainWindowViewModel(IAppSettingsStore? settingsStore = null)
+    public MainWindowViewModel(
+        IAppSettingsStore? settingsStore = null,
+        IZebraPrinterService? zebraPrinterService = null,
+        ISystemQueuePrinterService? systemQueuePrinterService = null)
     {
         _settingsStore = settingsStore ?? new FileAppSettingsStore();
+        _zebraPrinterService = zebraPrinterService ?? new ZebraPrinterService();
+        _systemQueuePrinterService = systemQueuePrinterService ?? new SystemQueuePrinterService();
 
         Rows.CollectionChanged += OnRowsCollectionChanged;
 
@@ -153,6 +162,36 @@ public sealed class MainWindowViewModel : ViewModelBase
         }
     } = DefaultBarcodeHeightDotsText;
 
+    public string PrinterHost
+    {
+        get;
+        set
+        {
+            if (SetProperty(ref field, value))
+                SaveSettings();
+        }
+    } = string.Empty;
+
+    public string PrinterQueueName
+    {
+        get;
+        set
+        {
+            if (SetProperty(ref field, value))
+                SaveSettings();
+        }
+    } = string.Empty;
+
+    public string PrinterPortText
+    {
+        get;
+        set
+        {
+            if (SetProperty(ref field, value))
+                SaveSettings();
+        }
+    } = DefaultPrinterPortText;
+
     public string LabelHeightDotsText
     {
         get;
@@ -204,6 +243,20 @@ public sealed class MainWindowViewModel : ViewModelBase
         .Sum();
 
     public bool CanExport => ValidRowsCount > 0;
+
+    public bool IsPrintInProgress
+    {
+        get => _isPrintInProgress;
+        private set
+        {
+            if (!SetProperty(ref _isPrintInProgress, value))
+                return;
+
+            OnPropertyChanged(nameof(CanPrint));
+        }
+    }
+
+    public bool CanPrint => CanExport && !IsPrintInProgress;
 
     public IRelayCommand AddRowCommand { get; }
 
@@ -271,30 +324,80 @@ public sealed class MainWindowViewModel : ViewModelBase
             return;
         }
 
-        var validData = CollectValidData();
-        if (validData.Count == 0)
-        {
-            StatusMessage = "Brak poprawnych wierszy do eksportu. Najpierw popraw błędy.";
-            return;
-        }
-
-        if (!TryBuildValidatedOptions(out var options, out var validationMessage))
+        if (!TryBuildZplPayload(out var zpl, out var validProductsCount, out var validationMessage))
         {
             StatusMessage = validationMessage;
             return;
         }
 
-        var zpl = ZplBuilder.Build(validData, new ZplBuildOptions
-        {
-            BarcodeType = SelectedBarcodeType,
-            IncludeProductName = IncludeProductName ?? true,
-            LabelWidthDots = options.LabelWidthDots,
-            BarcodeHeightDots = options.BarcodeHeightDots,
-            LabelHeightDots = options.LabelHeightDots
-        });
-
         File.WriteAllText(path, zpl, Encoding.ASCII);
-        StatusMessage = $"Wyeksportowano ZPL do {Path.GetFileName(path)} ({validData.Count} produktów, {TotalLabels} etykiet).";
+        StatusMessage = $"Wyeksportowano ZPL do {Path.GetFileName(path)} ({validProductsCount} produktów, {TotalLabels} etykiet).";
+    }
+
+    public async Task PrintZplToZebraAsync(CancellationToken cancellationToken = default)
+    {
+        if (IsPrintInProgress)
+        {
+            StatusMessage = "Drukowanie już trwa. Poczekaj na zakończenie bieżącego zadania.";
+            return;
+        }
+
+        if (!TryBuildZplPayload(out var zpl, out var validProductsCount, out var validationMessage))
+        {
+            StatusMessage = validationMessage;
+            return;
+        }
+
+        var queueName = PrinterQueueName.Trim();
+        if (!string.IsNullOrWhiteSpace(queueName))
+        {
+            IsPrintInProgress = true;
+            try
+            {
+                StatusMessage = $"Wysyłanie ZPL do kolejki '{queueName}'...";
+                await _systemQueuePrinterService.SendRawAsync(queueName, zpl, cancellationToken);
+                StatusMessage = $"Wysłano ZPL do drukarki USB/kolejki '{queueName}' ({validProductsCount} produktów, {TotalLabels} etykiet).";
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = $"Druk ZPL nie powiódł się: {ex.Message}";
+            }
+            finally
+            {
+                IsPrintInProgress = false;
+            }
+
+            return;
+        }
+
+        var host = PrinterHost.Trim();
+        if (string.IsNullOrWhiteSpace(host))
+        {
+            StatusMessage = "Uzupełnij nazwę drukarki USB (kolejki) albo Host/IP drukarki ZEBRA.";
+            return;
+        }
+
+        if (!int.TryParse(PrinterPortText, out var port) || port is < 1 or > 65535)
+        {
+            StatusMessage = "Port drukarki musi być liczbą w zakresie 1-65535.";
+            return;
+        }
+
+        try
+        {
+            IsPrintInProgress = true;
+            StatusMessage = $"Łączenie z drukarką ZEBRA {host}:{port} i wysyłanie ZPL...";
+            await _zebraPrinterService.SendAsync(host, port, zpl, cancellationToken);
+            StatusMessage = $"Wysłano ZPL na drukarkę ZEBRA ({host}:{port}) ({validProductsCount} produktów, {TotalLabels} etykiet).";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Druk ZPL nie powiódł się: {ex.Message}";
+        }
+        finally
+        {
+            IsPrintInProgress = false;
+        }
     }
 
     public void RemoveRow(ProductRowViewModel row)
@@ -442,6 +545,9 @@ public sealed class MainWindowViewModel : ViewModelBase
         {
             Name = uniqueName,
             BarcodeType = SelectedBarcodeType,
+            PrinterQueueName = PrinterQueueName,
+            PrinterHost = PrinterHost,
+            PrinterPort = int.TryParse(PrinterPortText, out var printerPort) && printerPort > 0 ? printerPort : 9100,
             PrinterDpi = PrinterDpi,
             LabelWidthDotsText = LabelWidthDotsText,
             BarcodeHeightDotsText = BarcodeHeightDotsText,
@@ -521,6 +627,9 @@ public sealed class MainWindowViewModel : ViewModelBase
     private void ApplyProfile(PrinterProfileSettings profile)
     {
         SelectedBarcodeType = profile.BarcodeType;
+        PrinterQueueName = profile.PrinterQueueName;
+        PrinterHost = profile.PrinterHost;
+        PrinterPortText = profile.PrinterPort > 0 ? profile.PrinterPort.ToString() : DefaultPrinterPortText;
         PrinterDpi = profile.PrinterDpi > 0 ? profile.PrinterDpi : DefaultPrinterDpi;
         LabelWidthDotsText = string.IsNullOrWhiteSpace(profile.LabelWidthDotsText)
             ? DefaultLabelWidthDotsText
@@ -540,6 +649,9 @@ public sealed class MainWindowViewModel : ViewModelBase
             return;
 
         profile.BarcodeType = SelectedBarcodeType;
+        profile.PrinterQueueName = PrinterQueueName.Trim();
+        profile.PrinterHost = PrinterHost.Trim();
+        profile.PrinterPort = int.TryParse(PrinterPortText, out var printerPort) && printerPort > 0 ? printerPort : 9100;
         profile.PrinterDpi = PrinterDpi;
         profile.LabelWidthDotsText = LabelWidthDotsText;
         profile.BarcodeHeightDotsText = BarcodeHeightDotsText;
@@ -552,11 +664,43 @@ public sealed class MainWindowViewModel : ViewModelBase
         {
             Name = source.Name,
             BarcodeType = source.BarcodeType,
+            PrinterQueueName = source.PrinterQueueName,
+            PrinterHost = source.PrinterHost,
+            PrinterPort = source.PrinterPort,
             PrinterDpi = source.PrinterDpi,
             LabelWidthDotsText = source.LabelWidthDotsText,
             BarcodeHeightDotsText = source.BarcodeHeightDotsText,
             LabelHeightDotsText = source.LabelHeightDotsText
         };
+    }
+
+    private bool TryBuildZplPayload(out string zpl, out int validProductsCount, out string message)
+    {
+        zpl = string.Empty;
+        validProductsCount = 0;
+
+        var validData = CollectValidData();
+        if (validData.Count == 0)
+        {
+            message = "Brak poprawnych wierszy do eksportu. Najpierw popraw błędy.";
+            return false;
+        }
+
+        if (!TryBuildValidatedOptions(out var options, out message))
+            return false;
+
+        zpl = ZplBuilder.Build(validData, new ZplBuildOptions
+        {
+            BarcodeType = SelectedBarcodeType,
+            IncludeProductName = IncludeProductName ?? true,
+            LabelWidthDots = options.LabelWidthDots,
+            BarcodeHeightDots = options.BarcodeHeightDots,
+            LabelHeightDots = options.LabelHeightDots
+        });
+
+        validProductsCount = validData.Count;
+        message = string.Empty;
+        return true;
     }
 
     private string BuildUniqueProfileName(string baseName)
@@ -671,6 +815,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         OnPropertyChanged(nameof(InvalidRowsCount));
         OnPropertyChanged(nameof(TotalLabels));
         OnPropertyChanged(nameof(CanExport));
+        OnPropertyChanged(nameof(CanPrint));
         RemoveSelectedRowCommand.NotifyCanExecuteChanged();
         ClearRowsCommand.NotifyCanExecuteChanged();
     }

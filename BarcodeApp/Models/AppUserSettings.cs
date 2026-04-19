@@ -14,6 +14,9 @@ public sealed class AppUserSettings
         {
             Name = "Domyslny",
             BarcodeType = BarcodeSymbology.Ean13,
+            PrinterQueueName = string.Empty,
+            PrinterHost = string.Empty,
+            PrinterPort = 9100,
             PrinterDpi = 203,
             LabelWidthDotsText = "600",
             BarcodeHeightDotsText = "110",

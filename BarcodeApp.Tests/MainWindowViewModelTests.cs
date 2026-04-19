@@ -42,6 +42,9 @@ public sealed class MainWindowViewModelTests
                     {
                         Name = "Magazyn A",
                         BarcodeType = BarcodeSymbology.UpcA,
+                        PrinterQueueName = "Zebra_USB",
+                        PrinterHost = "10.0.0.55",
+                        PrinterPort = 9100,
                         PrinterDpi = 300,
                         LabelWidthDotsText = "900",
                         BarcodeHeightDotsText = "140",
@@ -55,6 +58,9 @@ public sealed class MainWindowViewModelTests
 
         Assert.False(vm.IncludeProductName);
         Assert.Equal(BarcodeSymbology.UpcA, vm.SelectedBarcodeType);
+        Assert.Equal("Zebra_USB", vm.PrinterQueueName);
+        Assert.Equal("10.0.0.55", vm.PrinterHost);
+        Assert.Equal("9100", vm.PrinterPortText);
         Assert.Equal(300, vm.PrinterDpi);
         Assert.Equal("900", vm.LabelWidthDotsText);
         Assert.Equal("140", vm.BarcodeHeightDotsText);
@@ -245,6 +251,89 @@ public sealed class MainWindowViewModelTests
     }
 
     [Fact]
+    public async Task PrintZplToZebraAsync_MissingHost_ShowsValidationMessage()
+    {
+        var vm = BuildSingleValidRowVm();
+        vm.PrinterHost = "   ";
+        vm.PrinterQueueName = "   ";
+        vm.PrinterPortText = "9100";
+
+        await vm.PrintZplToZebraAsync();
+
+        Assert.Equal("Uzupełnij nazwę drukarki USB (kolejki) albo Host/IP drukarki ZEBRA.", vm.StatusMessage);
+    }
+
+    [Fact]
+    public async Task PrintZplToZebraAsync_InvalidPort_ShowsValidationMessage()
+    {
+        var vm = BuildSingleValidRowVm();
+        vm.PrinterHost = "192.168.1.55";
+        vm.PrinterPortText = "70000";
+
+        await vm.PrintZplToZebraAsync();
+
+        Assert.Equal("Port drukarki musi być liczbą w zakresie 1-65535.", vm.StatusMessage);
+    }
+
+    [Fact]
+    public async Task PrintZplToZebraAsync_WithValidInput_SendsPayloadToPrinterService()
+    {
+        var printer = new FakeZebraPrinterService();
+        var vm = BuildSingleValidRowVm(printerService: printer);
+        vm.PrinterHost = "192.168.1.55";
+        vm.PrinterQueueName = string.Empty;
+        vm.PrinterPortText = "9100";
+
+        await vm.PrintZplToZebraAsync();
+
+        Assert.Equal("192.168.1.55", printer.Host);
+        Assert.Equal(9100, printer.Port);
+        Assert.Contains("^FD590394978805^FS", printer.Zpl, StringComparison.Ordinal);
+        Assert.Contains("Wysłano ZPL na drukarkę ZEBRA", vm.StatusMessage, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task PrintZplToZebraAsync_DuringSend_SetsInProgressStateAndStatus()
+    {
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var printer = new BlockingZebraPrinterService(started, release);
+        var vm = BuildSingleValidRowVm(printerService: printer);
+        vm.PrinterHost = "192.168.1.55";
+        vm.PrinterQueueName = string.Empty;
+        vm.PrinterPortText = "9100";
+
+        var printTask = vm.PrintZplToZebraAsync();
+        await started.Task;
+
+        Assert.True(vm.IsPrintInProgress);
+        Assert.False(vm.CanPrint);
+        Assert.Contains("Łączenie z drukarką ZEBRA", vm.StatusMessage, StringComparison.Ordinal);
+
+        release.SetResult();
+        await printTask;
+
+        Assert.False(vm.IsPrintInProgress);
+        Assert.True(vm.CanPrint);
+    }
+
+    [Fact]
+    public async Task PrintZplToZebraAsync_WithUsbQueue_SendsPayloadToSystemQueueService()
+    {
+        var queuePrinter = new FakeSystemQueuePrinterService();
+        var vm = BuildSingleValidRowVm(systemQueuePrinterService: queuePrinter);
+        vm.PrinterQueueName = "Zebra_USB";
+        vm.PrinterHost = string.Empty;
+        vm.PrinterPortText = "9100";
+
+        await vm.PrintZplToZebraAsync();
+
+        Assert.Equal("Zebra_USB", queuePrinter.QueueName);
+        Assert.Contains("^FD590394978805^FS", queuePrinter.Zpl, StringComparison.Ordinal);
+        Assert.Contains("Wysłano ZPL do drukarki USB/kolejki 'Zebra_USB'", vm.StatusMessage, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ImportFromPath_MissingFile_ShowsFailureMessage()
     {
         var vm = CreateVm();
@@ -314,9 +403,11 @@ public sealed class MainWindowViewModelTests
         Assert.Equal("Wiersze wyczyszczone.", vm.StatusMessage);
     }
 
-    private static MainWindowViewModel BuildSingleValidRowVm()
+    private static MainWindowViewModel BuildSingleValidRowVm(
+        IZebraPrinterService? printerService = null,
+        ISystemQueuePrinterService? systemQueuePrinterService = null)
     {
-        var vm = CreateVm();
+        var vm = CreateVm(printerService, systemQueuePrinterService);
         vm.AddRowCommand.Execute(null);
         vm.Rows[0].Ean = "5903949788051";
         vm.Rows[0].Name = "Produkt A";
@@ -324,9 +415,11 @@ public sealed class MainWindowViewModelTests
         return vm;
     }
 
-    private static MainWindowViewModel CreateVm()
+    private static MainWindowViewModel CreateVm(
+        IZebraPrinterService? printerService = null,
+        ISystemQueuePrinterService? systemQueuePrinterService = null)
     {
-        return new MainWindowViewModel(new InMemorySettingsStore());
+        return new MainWindowViewModel(new InMemorySettingsStore(), printerService, systemQueuePrinterService);
     }
 
     private sealed class InMemorySettingsStore : IAppSettingsStore
@@ -343,6 +436,9 @@ public sealed class MainWindowViewModelTests
                 {
                     Name = p.Name,
                     BarcodeType = p.BarcodeType,
+                    PrinterQueueName = p.PrinterQueueName,
+                    PrinterHost = p.PrinterHost,
+                    PrinterPort = p.PrinterPort,
                     PrinterDpi = p.PrinterDpi,
                     LabelWidthDotsText = p.LabelWidthDotsText,
                     BarcodeHeightDotsText = p.BarcodeHeightDotsText,
@@ -367,6 +463,9 @@ public sealed class MainWindowViewModelTests
                     {
                         Name = p.Name,
                         BarcodeType = p.BarcodeType,
+                        PrinterQueueName = p.PrinterQueueName,
+                        PrinterHost = p.PrinterHost,
+                        PrinterPort = p.PrinterPort,
                         PrinterDpi = p.PrinterDpi,
                         LabelWidthDotsText = p.LabelWidthDotsText,
                         BarcodeHeightDotsText = p.BarcodeHeightDotsText,
@@ -378,6 +477,45 @@ public sealed class MainWindowViewModelTests
                 BarcodeHeightDotsText = settings.BarcodeHeightDotsText,
                 LabelHeightDotsText = settings.LabelHeightDotsText
             };
+        }
+    }
+
+    private sealed class FakeZebraPrinterService : IZebraPrinterService
+    {
+        public string Host { get; private set; } = string.Empty;
+        public int Port { get; private set; }
+        public string Zpl { get; private set; } = string.Empty;
+
+        public Task SendAsync(string host, int port, string zpl, CancellationToken cancellationToken = default)
+        {
+            Host = host;
+            Port = port;
+            Zpl = zpl;
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class FakeSystemQueuePrinterService : ISystemQueuePrinterService
+    {
+        public string QueueName { get; private set; } = string.Empty;
+        public string Zpl { get; private set; } = string.Empty;
+
+        public Task SendRawAsync(string queueName, string zpl, CancellationToken cancellationToken = default)
+        {
+            QueueName = queueName;
+            Zpl = zpl;
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class BlockingZebraPrinterService(
+        TaskCompletionSource started,
+        TaskCompletionSource release) : IZebraPrinterService
+    {
+        public async Task SendAsync(string host, int port, string zpl, CancellationToken cancellationToken = default)
+        {
+            started.SetResult();
+            await release.Task.WaitAsync(cancellationToken);
         }
     }
 }

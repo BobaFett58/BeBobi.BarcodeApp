@@ -20,7 +20,7 @@
 
     <Grid RowDefinitions="Auto,Auto,*,Auto,Auto,Auto" Margin="16" RowSpacing="10">
         <Border Grid.Row="0" Padding="12" Classes="surface-card toolbar-card">
-            <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto,Auto,Auto" ColumnSpacing="8">
+            <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto,Auto,Auto,Auto" ColumnSpacing="8">
                 <Button Content="Importuj CSV/XLS" Click="ImportFileButton_OnClick" />
                 <Button Grid.Column="1" Content="Dodaj wiersz" Command="{Binding AddRowCommand}" />
                 <Button Grid.Column="2" Content="Usuń zaznaczony" Command="{Binding RemoveSelectedRowCommand}" />
@@ -29,8 +29,10 @@
                           IsChecked="{Binding IncludeProductName, Mode=TwoWay}"
                           IsThreeState="False"
                           VerticalAlignment="Center" />
-                <Button Grid.Column="6" Content="Eksportuj ZPL" Click="ExportZplButton_OnClick"
+                <Button Grid.Column="6" Content="Eksportuj do pliku ZPL" Click="ExportZplButton_OnClick"
                         IsEnabled="{Binding CanExport}" />
+                <Button Grid.Column="7" Content="Drukuj ZPL na ZEBRA" Click="PrintZplButton_OnClick"
+                    IsEnabled="{Binding CanPrint}" />
             </Grid>
         </Border>
 
@@ -112,6 +114,37 @@
                                Text="{Binding BarcodeTypeHint}" Opacity="0.65" TextWrapping="Wrap" />
                 </Grid>
 
+                <Grid ColumnDefinitions="Auto,Auto,220,Auto,Auto,220,*" ColumnSpacing="10">
+                    <TextBlock VerticalAlignment="Center" Text="Drukarka USB (kolejka):" Classes="section-label" />
+                    <Border Grid.Column="1" Width="18" Height="18" CornerRadius="9" BorderThickness="1"
+                            BorderBrush="{DynamicResource SurfaceBorderBrush}" VerticalAlignment="Center"
+                            ToolTip.Tip="To nazwa kolejki drukarki z systemu (CUPS), np. Zebra_USB. Jak znaleźć: Ustawienia systemowe → Drukarki i skanery, albo komenda: lpstat -p">
+                        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="i" FontWeight="Bold" Opacity="0.75" />
+                    </Border>
+                    <TextBox Grid.Column="2" Text="{Binding PrinterQueueName, Mode=TwoWay}" PlaceholderText="np. Zebra_USB" />
+                    <TextBlock Grid.Column="3" VerticalAlignment="Center" Text="Host/IP ZEBRA:" Classes="section-label" />
+                    <Border Grid.Column="4" Width="18" Height="18" CornerRadius="9" BorderThickness="1"
+                            BorderBrush="{DynamicResource SurfaceBorderBrush}" VerticalAlignment="Center"
+                            ToolTip.Tip="Użyj dla drukarki sieciowej Zebra. IP sprawdzisz na etykiecie konfiguracyjnej drukarki lub w panelu routera. Dla Zebra RAW zwykle używa się portu 9100.">
+                        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="i" FontWeight="Bold" Opacity="0.75" />
+                    </Border>
+                    <TextBox Grid.Column="5" Text="{Binding PrinterHost, Mode=TwoWay}" PlaceholderText="np. 192.168.1.55" />
+                    <TextBlock Grid.Column="6" VerticalAlignment="Center" Margin="10,0,0,0"
+                               Text="USB: wpisz kolejkę. Sieć: wpisz Host/IP + port poniżej." Opacity="0.65" />
+                </Grid>
+
+                <Grid ColumnDefinitions="Auto,Auto,110,*" ColumnSpacing="10">
+                    <TextBlock VerticalAlignment="Center" Text="Port ZEBRA:" Classes="section-label" />
+                    <Border Grid.Column="1" Width="18" Height="18" CornerRadius="9" BorderThickness="1"
+                            BorderBrush="{DynamicResource SurfaceBorderBrush}" VerticalAlignment="Center"
+                            ToolTip.Tip="Port dla drukarki sieciowej Zebra. Najczęściej: 9100 (RAW). Jeśli nie działa, sprawdź ustawienia portu w konfiguracji drukarki.">
+                        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Text="i" FontWeight="Bold" Opacity="0.75" />
+                    </Border>
+                    <TextBox Grid.Column="2" Text="{Binding PrinterPortText, Mode=TwoWay}" />
+                    <TextBlock Grid.Column="3" VerticalAlignment="Center" Margin="10,0,0,0"
+                               Text="Standard dla ZEBRA TCP: 9100" Opacity="0.65" />
+                </Grid>
+
                 <!-- DPI row -->
                 <Grid ColumnDefinitions="Auto,110,*" ColumnSpacing="10">
                     <TextBlock VerticalAlignment="Center" Text="DPI drukarki:" Classes="section-label" />
@@ -170,7 +203,10 @@
 
         <Border Grid.Row="4" Padding="10" CornerRadius="6" BorderThickness="1" Classes="surface-card status-card">
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                <StackPanel Spacing="4" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap" />
+                    <TextBlock Text="Trwa drukowanie..." Opacity="0.7" IsVisible="{Binding IsPrintInProgress}" />
+                </StackPanel>
                 <Button Grid.Column="1" Content="Jak używać?" Click="ShowHelpButton_OnClick" />
             </Grid>
         </Border>

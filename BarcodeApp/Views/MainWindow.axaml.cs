@@ -59,6 +59,13 @@ public partial class MainWindow : Window
         ViewModel?.ExportZplToPath(localPath);
     }
 
+    private async void PrintZplButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel is null) return;
+
+        await ViewModel.PrintZplToZebraAsync();
+    }
+
     private void RemoveRowButton_OnClick(object? sender, RoutedEventArgs e)
     {
         if (sender is not Button { Tag: ProductRowViewModel row }) return;
@@ -92,8 +99,8 @@ public partial class MainWindow : Window
                 "2. Sprawdź kolumny EAN, nazwa produktu i ilość.\n" +
                 "3. Popraw błędne wiersze (sekcja \"Walidacja\" pokaże problem).\n" +
                 "4. W razie potrzeby dodawaj lub usuwaj wiersze.\n" +
-                "5. Kliknij \"Eksportuj ZPL\" aby zapisać plik etykiet.\n" +
-                "6. Aby drukować bezpośrednio, wpisz host/IP i port drukarki, potem kliknij \"Wyślij do drukarki\".",
+                "5. Kliknij \"Eksportuj do pliku ZPL\" aby zapisać plik etykiet.\n" +
+                "6. Aby drukować bezpośrednio: dla USB wpisz nazwę kolejki drukarki, a dla sieci wpisz host/IP i port ZEBRA. Następnie kliknij \"Drukuj ZPL na ZEBRA\".",
             TextWrapping = TextWrapping.Wrap
         };
 
