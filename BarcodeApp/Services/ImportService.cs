@@ -18,6 +18,16 @@ public sealed class ImportService
         "nazwa", "nazwaproduktu", "pelnaunnazwyanazwaproduktu", "product", "productname"
     ];
 
+    private static readonly HashSet<string> SkuAliases =
+    [
+        "sku", "symbol", "indeks", "kodtowaru"
+    ];
+
+    private static readonly HashSet<string> PriceAliases =
+    [
+        "cena", "price", "cenabrutto", "cenanetto"
+    ];
+
     private static readonly HashSet<string> QuantityAliases =
     [
         "ilosc", "iloscszt", "qty", "quantity", "szt", "sztuki"
@@ -107,7 +117,7 @@ public sealed class ImportService
 
         if (mapping is null)
         {
-            mapping = (0, 1, 2);
+            mapping = new ColumnMapping(0, 1, 2, null, null);
             warnings.Add("Nie udało się wykryć nagłówków. Użyto pierwszych trzech kolumn: EAN, Nazwa, Ilość.");
         }
 
@@ -120,14 +130,18 @@ public sealed class ImportService
             var ean = GetCell(row, mapping.Value.EanIndex);
             var name = GetCell(row, mapping.Value.NameIndex);
             var quantity = GetCell(row, mapping.Value.QuantityIndex);
+            var sku = mapping.Value.SkuIndex.HasValue ? GetCell(row, mapping.Value.SkuIndex.Value) : string.Empty;
+            var price = mapping.Value.PriceIndex.HasValue ? GetCell(row, mapping.Value.PriceIndex.Value) : string.Empty;
 
-            if (string.IsNullOrWhiteSpace(ean) && string.IsNullOrWhiteSpace(name) &&
+            var description = BuildDescription(sku, name, price);
+
+            if (string.IsNullOrWhiteSpace(ean) && string.IsNullOrWhiteSpace(description) &&
                 string.IsNullOrWhiteSpace(quantity)) continue;
 
             importedRows.Add(new ProductInputRow
             {
                 Ean = ean,
-                Name = name,
+                Name = description,
                 QuantityText = quantity,
                 SourceRowNumber = i + 1
             });
@@ -142,7 +156,7 @@ public sealed class ImportService
         };
     }
 
-    private static (int EanIndex, int NameIndex, int QuantityIndex)? ResolveColumnMapping(
+    private static ColumnMapping? ResolveColumnMapping(
         IReadOnlyList<string> firstRow,
         out bool hasHeader)
     {
@@ -153,6 +167,8 @@ public sealed class ImportService
         int? ean = null;
         int? name = null;
         int? quantity = null;
+        int? sku = null;
+        int? price = null;
         for (var i = 0; i < firstRow.Count; i++)
         {
             var normalized = NormalizeHeader(firstRow[i]);
@@ -161,23 +177,37 @@ public sealed class ImportService
                 ean = i;
             else if (NameAliases.Contains(normalized))
                 name = i;
-            else if (QuantityAliases.Contains(normalized)) quantity = i;
+            else if (QuantityAliases.Contains(normalized))
+                quantity = i;
+            else if (SkuAliases.Contains(normalized))
+                sku = i;
+            else if (PriceAliases.Contains(normalized))
+                price = i;
         }
 
         if (ean.HasValue && name.HasValue && quantity.HasValue)
         {
             hasHeader = true;
-            return (ean.Value, name.Value, quantity.Value);
+            return new ColumnMapping(ean.Value, name.Value, quantity.Value, sku, price);
         }
 
         var firstCell = firstRow[0].Trim();
         if (!LooksLikeEan(firstCell) && firstRow.Any(cell => cell.Any(char.IsLetter)))
         {
             hasHeader = true;
-            return (ean ?? 0, name ?? 1, quantity ?? 2);
+            return new ColumnMapping(ean ?? 0, name ?? 1, quantity ?? 2, sku, price);
         }
 
-        return (0, 1, 2);
+        return new ColumnMapping(0, 1, 2, null, null);
+    }
+
+    private static string BuildDescription(string sku, string name, string price)
+    {
+        var parts = new[] { sku, name, price }
+            .Where(part => !string.IsNullOrWhiteSpace(part))
+            .Select(part => part.Trim());
+
+        return string.Join(" ", parts);
     }
 
     private static string NormalizeHeader(string header)
@@ -220,4 +250,11 @@ public sealed class ImportService
 
         return best.count == 0 ? ',' : best.candidate;
     }
+
+    private readonly record struct ColumnMapping(
+        int EanIndex,
+        int NameIndex,
+        int QuantityIndex,
+        int? SkuIndex,
+        int? PriceIndex);
 }

@@ -165,4 +165,57 @@ public sealed class ImportServiceTests
         Assert.Single(result.Warnings);
         Assert.Contains("nie znaleziono żadnych wierszy z danymi produktów", result.Warnings[0], StringComparison.OrdinalIgnoreCase);
     }
+
+    [Fact]
+    public void Import_Csv_EanSkuNamePriceQuantity_ComposesDescription()
+    {
+        using var temp = new TempPath();
+        var path = temp.GetFilePath("ean-sku-name-price.csv");
+
+        File.WriteAllText(path,
+            "EAN;SKU;Nazwa produktu;Cena;Ilość\n" +
+            "5907053182057;HEYEHE;Kuk+;59,00;1\n" +
+            "5907223182058;DHEYGXSD;Dengu 2/3;60,00;2\n");
+
+        var result = _service.Import(path);
+
+        Assert.Equal(2, result.Rows.Count);
+        Assert.Equal("5907053182057", result.Rows[0].Ean);
+        Assert.Equal("HEYEHE Kuk+ 59,00", result.Rows[0].Name);
+        Assert.Equal("1", result.Rows[0].QuantityText);
+        Assert.Equal("DHEYGXSD Dengu 2/3 60,00", result.Rows[1].Name);
+        Assert.Equal("2", result.Rows[1].QuantityText);
+    }
+
+    [Fact]
+    public void Import_Excel_EanSkuNamePriceQuantity_ComposesDescription()
+    {
+        using var temp = new TempPath();
+        var path = temp.GetFilePath("ean-sku-name-price.xlsx");
+
+        using (var workbook = new XLWorkbook())
+        {
+            var ws = workbook.Worksheets.Add("Data");
+            ws.Cell(1, 1).Value = "EAN";
+            ws.Cell(1, 2).Value = "SKU";
+            ws.Cell(1, 3).Value = "Nazwa produktu";
+            ws.Cell(1, 4).Value = "Cena";
+            ws.Cell(1, 5).Value = "Ilość";
+
+            ws.Cell(2, 1).Value = "5907232820590";
+            ws.Cell(2, 2).Value = "BR20CSMS";
+            ws.Cell(2, 3).Value = "Pakia Torba MySkylos";
+            ws.Cell(2, 4).Value = "59,00";
+            ws.Cell(2, 5).Value = 1;
+
+            workbook.SaveAs(path);
+        }
+
+        var result = _service.Import(path);
+
+        Assert.Single(result.Rows);
+        Assert.Equal("5907232820590", result.Rows[0].Ean);
+        Assert.Equal("BR20CSMS Pakia Torba MySkylos 59,00", result.Rows[0].Name);
+        Assert.Equal("1", result.Rows[0].QuantityText);
+    }
 }
