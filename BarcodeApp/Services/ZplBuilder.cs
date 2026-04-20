@@ -15,9 +15,9 @@ public static class ZplBuilder
         foreach (var row in rows)
         {
             var safeName = EscapeField(row.Name);
-            if (safeName.Length > options.MaxProductNameLength) safeName = safeName[..options.MaxProductNameLength];
             var barcodeFieldData = BarcodeValueRules.BuildZplFieldData(row.Ean, options.BarcodeType);
             var barcodeCommand = BuildBarcodeCommand(options.BarcodeType, options.BarcodeHeightDots, barcodeFieldData);
+            var barcodeX = CalculateCenteredBarcodeX(options.LabelWidthDots, options.BarcodeType);
 
             for (var i = 0; i < row.Quantity; i++)
             {
@@ -29,12 +29,14 @@ public static class ZplBuilder
 
                 if (options.IncludeProductName && !string.IsNullOrWhiteSpace(safeName))
                 {
-                    builder.AppendLine($"^FO30,20^A0N,32,32^FD{safeName}^FS");
-                    builder.AppendLine($"^FO30,70{barcodeCommand}");
+                    var nameFieldData = EnsureFieldBlockLineSeparator(safeName);
+                    // 2-line centered description using Field Block
+                    builder.AppendLine($"^FO0,12^FB{options.LabelWidthDots},2,2,C^A0N,28,28^FD{nameFieldData}^FS");
+                    builder.AppendLine($"^FO{barcodeX},82{barcodeCommand}");
                 }
                 else
                 {
-                    builder.AppendLine($"^FO30,25{barcodeCommand}");
+                    builder.AppendLine($"^FO{barcodeX},30{barcodeCommand}");
                 }
 
                 builder.AppendLine("^XZ");
@@ -44,12 +46,36 @@ public static class ZplBuilder
         return builder.ToString();
     }
 
+    /// <summary>
+    /// Calculates the left X origin (dots) to horizontally center a barcode
+    /// within the label. Widths are estimates at <c>^BY2</c> (module width 2 dots).
+    /// </summary>
+    private static int CalculateCenteredBarcodeX(int labelWidthDots, BarcodeSymbology type)
+    {
+        var barcodeWidth = type switch
+        {
+            BarcodeSymbology.Ean13   => 228,
+            BarcodeSymbology.Ean8    => 164,
+            BarcodeSymbology.UpcA    => 228,
+            BarcodeSymbology.Code128 => 200,
+            _                        => 228
+        };
+        return Math.Max((labelWidthDots - barcodeWidth) / 2, 10);
+    }
+
     private static string EscapeField(string value)
     {
         return value
             .Replace("^", string.Empty, StringComparison.Ordinal)
             .Replace("~", string.Empty, StringComparison.Ordinal)
             .Trim();
+    }
+
+    private static string EnsureFieldBlockLineSeparator(string value)
+    {
+        return value.EndsWith("\\&", StringComparison.Ordinal)
+            ? value
+            : $"{value}\\&";
     }
 
     private static string BuildBarcodeCommand(BarcodeSymbology type, int height, string fieldData)

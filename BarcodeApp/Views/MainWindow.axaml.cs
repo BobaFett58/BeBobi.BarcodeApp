@@ -73,6 +73,22 @@ public partial class MainWindow : Window
         ViewModel?.RemoveRow(row);
     }
 
+    private async void PreviewRowButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: ProductRowViewModel row })
+            return;
+
+        var includeName = ViewModel?.IncludeProductName ?? true;
+        var barcodeType = ViewModel?.SelectedBarcodeType ?? row.BarcodeType;
+
+        var dialog = new StickerPreviewWindow
+        {
+            DataContext = new StickerPreviewViewModel(row, includeName, barcodeType)
+        };
+
+        await dialog.ShowDialog(this);
+    }
+
     private async void ShowHelpButton_OnClick(object? sender, RoutedEventArgs e)
     {
         var dialog = new Window

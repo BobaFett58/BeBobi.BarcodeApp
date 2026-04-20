@@ -76,8 +76,10 @@
                                         <TextBox Grid.Column="4" Text="{Binding QuantityText, Mode=TwoWay}" />
                                         <TextBlock Grid.Column="5" Text="{Binding ValidationMessage}"
                                                    VerticalAlignment="Center" TextWrapping="Wrap" />
-                                        <Button Grid.Column="6" Content="Usuń" Click="RemoveRowButton_OnClick"
-                                                Tag="{Binding .}" />
+                                        <StackPanel Grid.Column="6" Orientation="Horizontal" Spacing="6">
+                                            <Button Content="Podgląd" Click="PreviewRowButton_OnClick" Tag="{Binding .}" />
+                                            <Button Content="Usuń" Click="RemoveRowButton_OnClick" Tag="{Binding .}" />
+                                        </StackPanel>
                                     </Grid>
                                 </Border>
                             </DataTemplate>

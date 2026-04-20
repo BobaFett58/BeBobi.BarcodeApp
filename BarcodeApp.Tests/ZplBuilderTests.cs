@@ -43,12 +43,12 @@ public sealed class ZplBuilderTests
             IncludeProductName = false
         });
 
-        Assert.DoesNotContain("^A0N,32,32", zpl);
+        Assert.DoesNotContain("^A0N,28,28", zpl);
         Assert.Contains("^FD590394978805^FS", zpl);
     }
 
     [Fact]
-    public void Build_SanitizesAndTruncates_ProductName()
+    public void Build_SanitizesWithoutTruncating_ProductName()
     {
         var rows = new[]
         {
@@ -60,12 +60,9 @@ public sealed class ZplBuilderTests
             }
         };
 
-        var zpl = ZplBuilder.Build(rows, new ZplBuildOptions
-        {
-            MaxProductNameLength = 6
-        });
+        var zpl = ZplBuilder.Build(rows, new ZplBuildOptions());
 
-        Assert.Contains("^FDABCDEF^FS", zpl);
+        Assert.Contains("^FDABCDEFGH\\&^FS", zpl);
     }
 
     [Fact]
@@ -186,6 +183,38 @@ public sealed class ZplBuilderTests
 
         Assert.Contains("^BCN", zpl);
         Assert.Contains("^FDABC12345XYZ^FS", zpl);
+    }
+
+    [Fact]
+    public void Build_IncludesName_UsesCenteredTwoLineFieldBlock()
+    {
+        var rows = new[]
+        {
+            new ValidProductData { Ean = "5903949788051", Name = "Produkt testowy", Quantity = 1 }
+        };
+
+        var zpl = ZplBuilder.Build(rows, new ZplBuildOptions { LabelWidthDots = 600 });
+
+        // ^FB600,2,2,C — width=600, maxLines=2, lineSpacing=2, center-justified
+        Assert.Contains("^FB600,2,2,C^A0N,28,28^FDProdukt testowy\\&^FS", zpl);
+    }
+
+    [Fact]
+    public void Build_CenteredBarcodeX_IsApproximatelyHalf_ForEan13()
+    {
+        var rows = new[]
+        {
+            new ValidProductData { Ean = "5903949788051", Name = "Test", Quantity = 1 }
+        };
+
+        var zpl = ZplBuilder.Build(rows, new ZplBuildOptions
+        {
+            LabelWidthDots = 600,
+            IncludeProductName = false
+        });
+
+        // For EAN-13 at ^BY2, barcodeWidth≈228, so x=(600-228)/2=186
+        Assert.Contains("^FO186,", zpl);
     }
 
     private static int CountOccurrences(string content, string token)

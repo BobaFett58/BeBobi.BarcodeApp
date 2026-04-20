@@ -5,12 +5,18 @@ namespace Qivisoft.BarcodeApp.ViewModels;
 
 public sealed class ProductRowViewModel : ViewModelBase
 {
+    private const int PreviewLineLength = 24;
+
     public BarcodeSymbology BarcodeType
     {
         get;
         set
         {
-            if (SetProperty(ref field, value)) Validate();
+            if (SetProperty(ref field, value))
+            {
+                Validate();
+                NotifyPreviewChanged();
+            }
         }
     } = BarcodeSymbology.Ean13;
 
@@ -19,7 +25,11 @@ public sealed class ProductRowViewModel : ViewModelBase
         get;
         set
         {
-            if (SetProperty(ref field, value)) Validate();
+            if (SetProperty(ref field, value))
+            {
+                Validate();
+                NotifyPreviewChanged();
+            }
         }
     } = string.Empty;
 
@@ -28,7 +38,11 @@ public sealed class ProductRowViewModel : ViewModelBase
         get;
         set
         {
-            if (SetProperty(ref field, value)) Validate();
+            if (SetProperty(ref field, value))
+            {
+                Validate();
+                NotifyPreviewChanged();
+            }
         }
     } = string.Empty;
 
@@ -46,7 +60,11 @@ public sealed class ProductRowViewModel : ViewModelBase
         get;
         set
         {
-            if (SetProperty(ref field, value)) RowChanged?.Invoke(this, EventArgs.Empty);
+            if (SetProperty(ref field, value))
+            {
+                NotifyPreviewChanged();
+                RowChanged?.Invoke(this, EventArgs.Empty);
+            }
         }
     } = string.Empty;
 
@@ -55,9 +73,21 @@ public sealed class ProductRowViewModel : ViewModelBase
         get;
         set
         {
-            if (SetProperty(ref field, value)) RowChanged?.Invoke(this, EventArgs.Empty);
+            if (SetProperty(ref field, value))
+            {
+                NotifyPreviewChanged();
+                RowChanged?.Invoke(this, EventArgs.Empty);
+            }
         }
     } = string.Empty;
+
+    public string PreviewDescriptionLine1 => BuildPreviewLines(Sku, Name, Price).line1;
+
+    public string PreviewDescriptionLine2 => BuildPreviewLines(Sku, Name, Price).line2;
+
+    public string PreviewBarcodeText => BuildPreviewBarcodeText(Ean);
+
+    public string PreviewBarcodeBars => BuildPreviewBarcodeBars(Ean);
 
     public bool IsValid
     {
@@ -133,10 +163,105 @@ public sealed class ProductRowViewModel : ViewModelBase
 
     private static string BuildDescription(string sku, string name, string price)
     {
-        var parts = new[] { sku, name, price }
+        var normalizedName = name.Trim();
+        var extraInfo = new[] { sku, price }
             .Where(part => !string.IsNullOrWhiteSpace(part))
             .Select(part => part.Trim());
+        var normalizedExtra = string.Join(" ", extraInfo);
 
-        return string.Join(" ", parts);
+        if (string.IsNullOrWhiteSpace(normalizedName))
+            return normalizedExtra;
+
+        if (string.IsNullOrWhiteSpace(normalizedExtra))
+            return normalizedName;
+
+        var singleLine = $"{normalizedName} {normalizedExtra}";
+        if (singleLine.Length <= PreviewLineLength)
+            return singleLine;
+
+        // ZPL line break marker for ^FB; used only when the full description is too long.
+        return $"{normalizedName}\\&{normalizedExtra}";
+    }
+
+    private static (string line1, string line2) BuildPreviewLines(string sku, string name, string price)
+    {
+        var composed = BuildDescription(sku, name, price);
+        var zplBreak = composed.IndexOf("\\&", StringComparison.Ordinal);
+        if (zplBreak >= 0)
+        {
+            var line1 = composed[..zplBreak].Trim();
+            var line2 = composed[(zplBreak + 2)..].Trim();
+            return (line1, line2);
+        }
+
+        return SplitForPreview(composed);
+    }
+
+    private static (string line1, string line2) SplitForPreview(string text)
+    {
+        var normalized = string.Join(' ', text.Split(' ', StringSplitOptions.RemoveEmptyEntries));
+        if (string.IsNullOrWhiteSpace(normalized))
+            return (string.Empty, string.Empty);
+
+        if (normalized.Length <= PreviewLineLength)
+            return (normalized, string.Empty);
+
+        var firstBreak = normalized.LastIndexOf(' ', PreviewLineLength);
+        if (firstBreak < 1)
+            firstBreak = PreviewLineLength;
+
+        var line1 = normalized[..firstBreak].Trim();
+        var remainder = normalized[firstBreak..].TrimStart();
+
+        if (remainder.Length <= PreviewLineLength)
+            return (line1, remainder);
+
+        var secondBreak = remainder.LastIndexOf(' ', PreviewLineLength);
+        if (secondBreak < 1)
+            secondBreak = PreviewLineLength;
+
+        var line2 = remainder[..secondBreak].TrimEnd();
+        if (secondBreak < remainder.Length)
+            line2 += "...";
+
+        return (line1, line2);
+    }
+
+    private static string BuildPreviewBarcodeText(string ean)
+    {
+        var value = ean.Trim();
+        if (string.IsNullOrEmpty(value))
+            return "(brak kodu)";
+
+        return string.Join(' ', value.Chunk(1).Select(chars => new string(chars)));
+    }
+
+    private static string BuildPreviewBarcodeBars(string ean)
+    {
+        var digits = ean.Trim();
+        if (string.IsNullOrEmpty(digits))
+            return "||||||||||||||||||||";
+
+        var bars = new System.Text.StringBuilder();
+        for (var index = 0; index < digits.Length; index++)
+        {
+            var ch = digits[index];
+            var width = char.IsDigit(ch) ? ((ch - '0') % 3) + 1 : 2;
+            bars.Append(new string('|', width));
+
+            // Keep subtle separators every two symbols to suggest scanner grouping.
+            if (index % 2 == 1)
+                bars.Append(' ');
+        }
+
+        return bars.ToString();
+    }
+
+    private void NotifyPreviewChanged()
+    {
+        OnPropertyChanged(nameof(PreviewDescriptionLine1));
+        OnPropertyChanged(nameof(PreviewDescriptionLine2));
+        OnPropertyChanged(nameof(PreviewBarcodeText));
+        OnPropertyChanged(nameof(PreviewBarcodeBars));
     }
 }

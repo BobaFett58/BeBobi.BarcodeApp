@@ -1,0 +1,47 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Qivisoft.BarcodeApp.ViewModels"
+        x:Class="Qivisoft.BarcodeApp.Views.StickerPreviewWindow"
+        x:DataType="vm:StickerPreviewViewModel"
+        x:CompileBindings="False"
+        Title="Podgląd etykiety"
+        Width="560"
+        Height="400"
+        MinWidth="500"
+        MinHeight="340"
+        CanResize="True"
+        WindowStartupLocation="CenterOwner">
+
+    <Grid RowDefinitions="*,Auto" Margin="14" RowSpacing="10">
+        <Border Classes="preview-dialog-root" Padding="14">
+            <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="8">
+                <TextBlock Text="Podgląd etykiety" Classes="section-label" FontSize="16" />
+
+                <Grid Grid.Row="1" Margin="0,4,0,0" HorizontalAlignment="Center">
+                    <Border Classes="preview-paper" Width="460" Height="210" Padding="16">
+                        <Grid RowDefinitions="Auto,*,Auto" RowSpacing="8">
+                            <StackPanel IsVisible="{Binding IncludeProductName}" Spacing="2" HorizontalAlignment="Center">
+                                <TextBlock Text="{Binding DescriptionLine1}" Classes="preview-description-main" TextTrimming="CharacterEllipsis" HorizontalAlignment="Center" />
+                                <TextBlock Text="{Binding DescriptionLine2}" Classes="preview-description-secondary" TextTrimming="CharacterEllipsis" HorizontalAlignment="Center" />
+                            </StackPanel>
+
+                            <StackPanel Grid.Row="1" Spacing="4" VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <TextBlock Text="{Binding BarcodeBars}" Classes="preview-barcode-bars" HorizontalAlignment="Center" />
+                                <TextBlock Text="{Binding BarcodeText}" Classes="preview-barcode-text" HorizontalAlignment="Center" />
+                            </StackPanel>
+
+                            <TextBlock Grid.Row="2" Text="{Binding BarcodeCaption}" Classes="preview-caption" HorizontalAlignment="Right" />
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <TextBlock Grid.Row="2"
+                           Text="{Binding ValidationMessage}"
+                           Classes="preview-validation"
+                           TextWrapping="Wrap" />
+            </Grid>
+        </Border>
+
+        <Button Grid.Row="1" Content="Zamknij" HorizontalAlignment="Right" MinWidth="110" Click="CloseButton_OnClick" />
+    </Grid>
+</Window>

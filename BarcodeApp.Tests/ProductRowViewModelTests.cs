@@ -71,7 +71,7 @@ public sealed class ProductRowViewModelTests
         var ok = row.TryBuildValidData(out var data);
 
         Assert.True(ok);
-        Assert.Equal("HEYEHE Kuk+ 59,00", data.Name);
+        Assert.Equal("Kuk+ HEYEHE 59,00", data.Name);
     }
 
     [Fact]
@@ -138,5 +138,52 @@ public sealed class ProductRowViewModelTests
         row.QuantityText = "2";
 
         Assert.True(row.IsValid);
+    }
+
+    [Fact]
+    public void PreviewDescription_SplitsIntoTwoLines_ForLongDescription()
+    {
+        var row = ProductRowViewModel.CreateEmpty();
+        row.Sku = "HEYEHE";
+        row.Name = "Obroza dla psa Hau are you sun";
+        row.Price = "59,00";
+
+        Assert.False(string.IsNullOrWhiteSpace(row.PreviewDescriptionLine1));
+        Assert.False(string.IsNullOrWhiteSpace(row.PreviewDescriptionLine2));
+        Assert.Contains("Obroza", row.PreviewDescriptionLine1, StringComparison.Ordinal);
+        Assert.Contains("HEYEHE", row.PreviewDescriptionLine2, StringComparison.Ordinal);
+        Assert.Contains("59,00", row.PreviewDescriptionLine2, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PreviewDescription_UsesSingleLine_ForShortDescription()
+    {
+        var row = ProductRowViewModel.CreateEmpty();
+        row.Name = "Kuk+";
+
+        Assert.Equal("Kuk+", row.PreviewDescriptionLine1);
+        Assert.Equal(string.Empty, row.PreviewDescriptionLine2);
+    }
+
+    [Fact]
+    public void PreviewDescription_DoesNotUseSecondLine_WhenShortWithExtras()
+    {
+        var row = ProductRowViewModel.CreateEmpty();
+        row.Name = "Kuk+";
+        row.Sku = "HEYEHE";
+        row.Price = "59,00";
+
+        Assert.Equal("Kuk+ HEYEHE 59,00", row.PreviewDescriptionLine1);
+        Assert.Equal(string.Empty, row.PreviewDescriptionLine2);
+    }
+
+    [Fact]
+    public void PreviewBarcode_UpdatesWhenEanChanges()
+    {
+        var row = ProductRowViewModel.CreateEmpty();
+        row.Ean = "5906358794453";
+
+        Assert.Contains("5 9 0 6 3 5", row.PreviewBarcodeText, StringComparison.Ordinal);
+        Assert.Contains("|", row.PreviewBarcodeBars, StringComparison.Ordinal);
     }
 }
