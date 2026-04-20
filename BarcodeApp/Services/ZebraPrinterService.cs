@@ -10,6 +10,8 @@ public interface IZebraPrinterService
 
 public sealed class ZebraPrinterService : IZebraPrinterService
 {
+    private static readonly Encoding ZplEncoding = new UTF8Encoding(false);
+
     public async Task SendAsync(string host, int port, string zpl, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(host);
@@ -20,7 +22,7 @@ public sealed class ZebraPrinterService : IZebraPrinterService
         await client.ConnectAsync(host.Trim(), port, cancellationToken);
 
         await using var stream = client.GetStream();
-        var bytes = Encoding.ASCII.GetBytes(zpl);
+        var bytes = ZplEncoding.GetBytes(zpl);
         await stream.WriteAsync(bytes, cancellationToken);
         await stream.FlushAsync(cancellationToken);
     }

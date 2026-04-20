@@ -4,6 +4,8 @@ public sealed class ZplBuildOptions
 {
     public BarcodeSymbology BarcodeType { get; init; } = BarcodeSymbology.Ean13;
 
+    public int BarcodeModuleWidthDots { get; init; } = 3;
+
     public bool IncludeProductName { get; init; } = true;
 
     public int MaxProductNameLength { get; init; } = 42;

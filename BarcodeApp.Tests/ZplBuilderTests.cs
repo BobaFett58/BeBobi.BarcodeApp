@@ -45,6 +45,7 @@ public sealed class ZplBuilderTests
 
         Assert.DoesNotContain("^A0N,28,28", zpl);
         Assert.Contains("^FD590394978805^FS", zpl);
+        Assert.Contains("^CI28", zpl);
     }
 
     [Fact]
@@ -114,7 +115,7 @@ public sealed class ZplBuilderTests
         });
 
         Assert.Contains("^PW800", zpl);
-        Assert.Contains("^BY2,2,150^BEN", zpl);
+        Assert.Contains("^BY3,2,150^BEN", zpl);
     }
 
     [Fact]
@@ -213,8 +214,8 @@ public sealed class ZplBuilderTests
             IncludeProductName = false
         });
 
-        // For EAN-13 at ^BY2, barcodeWidth≈228, so x=(600-228)/2=186
-        Assert.Contains("^FO186,", zpl);
+        // For EAN-13 at ^BY3, barcodeWidth≈342, so x=(600-342)/2=129
+        Assert.Contains("^FO129,", zpl);
     }
 
     private static int CountOccurrences(string content, string token)

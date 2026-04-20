@@ -12,6 +12,8 @@ public interface ISystemQueuePrinterService
 
 public sealed class SystemQueuePrinterService : ISystemQueuePrinterService
 {
+    private static readonly Encoding ZplEncoding = new UTF8Encoding(false);
+
     public async Task SendRawAsync(string queueName, string zpl, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(queueName);
@@ -31,7 +33,7 @@ public sealed class SystemQueuePrinterService : ISystemQueuePrinterService
 
         try
         {
-            await File.WriteAllTextAsync(tempPath, zpl, Encoding.ASCII, cancellationToken);
+            await File.WriteAllTextAsync(tempPath, zpl, ZplEncoding, cancellationToken);
 
             var psi = new ProcessStartInfo
             {
@@ -73,7 +75,7 @@ public sealed class SystemQueuePrinterService : ISystemQueuePrinterService
 
     private static void SendRawToWindowsQueue(string queueName, string zpl)
     {
-        var bytes = Encoding.ASCII.GetBytes(zpl);
+        var bytes = ZplEncoding.GetBytes(zpl);
 
         if (!WindowsRawPrinter.OpenPrinter(queueName, out var printerHandle, IntPtr.Zero))
             throw CreateWindowsPrintException(queueName, "Nie udało się otworzyć kolejki drukarki");

@@ -16,8 +16,8 @@ public static class ZplBuilder
         {
             var safeName = EscapeField(row.Name);
             var barcodeFieldData = BarcodeValueRules.BuildZplFieldData(row.Ean, options.BarcodeType);
-            var barcodeCommand = BuildBarcodeCommand(options.BarcodeType, options.BarcodeHeightDots, barcodeFieldData);
-            var barcodeX = CalculateCenteredBarcodeX(options.LabelWidthDots, options.BarcodeType);
+            var barcodeCommand = BuildBarcodeCommand(options.BarcodeType, options.BarcodeModuleWidthDots, options.BarcodeHeightDots, barcodeFieldData);
+            var barcodeX = CalculateCenteredBarcodeX(options.LabelWidthDots, options.BarcodeType, options.BarcodeModuleWidthDots);
 
             for (var i = 0; i < row.Quantity; i++)
             {
@@ -26,6 +26,8 @@ public static class ZplBuilder
                 if (options.LabelHeightDots > 0)
                     builder.AppendLine($"^LL{options.LabelHeightDots}");
                 builder.AppendLine("^LH0,0");
+                // Use UTF-8 code page for Polish diacritics in product names.
+                builder.AppendLine("^CI28");
 
                 if (options.IncludeProductName && !string.IsNullOrWhiteSpace(safeName))
                 {
@@ -48,18 +50,20 @@ public static class ZplBuilder
 
     /// <summary>
     /// Calculates the left X origin (dots) to horizontally center a barcode
-    /// within the label. Widths are estimates at <c>^BY2</c> (module width 2 dots).
+    /// within the label. Widths are estimated from module width in <c>^BY</c>.
     /// </summary>
-    private static int CalculateCenteredBarcodeX(int labelWidthDots, BarcodeSymbology type)
+    private static int CalculateCenteredBarcodeX(int labelWidthDots, BarcodeSymbology type, int moduleWidthDots)
     {
-        var barcodeWidth = type switch
+        var normalizedModuleWidth = Math.Clamp(moduleWidthDots, 1, 10);
+        var baseWidthForModuleOne = type switch
         {
-            BarcodeSymbology.Ean13   => 228,
-            BarcodeSymbology.Ean8    => 164,
-            BarcodeSymbology.UpcA    => 228,
-            BarcodeSymbology.Code128 => 200,
-            _                        => 228
+            BarcodeSymbology.Ean13   => 114,
+            BarcodeSymbology.Ean8    => 82,
+            BarcodeSymbology.UpcA    => 114,
+            BarcodeSymbology.Code128 => 100,
+            _                        => 114
         };
+        var barcodeWidth = baseWidthForModuleOne * normalizedModuleWidth;
         return Math.Max((labelWidthDots - barcodeWidth) / 2, 10);
     }
 
@@ -78,15 +82,17 @@ public static class ZplBuilder
             : $"{value}\\&";
     }
 
-    private static string BuildBarcodeCommand(BarcodeSymbology type, int height, string fieldData)
+    private static string BuildBarcodeCommand(BarcodeSymbology type, int moduleWidthDots, int height, string fieldData)
     {
+        var normalizedModuleWidth = Math.Clamp(moduleWidthDots, 1, 10);
+
         return type switch
         {
-            BarcodeSymbology.Ean13 => $"^BY2,2,{height}^BEN,{height},Y,N^FD{fieldData}^FS",
-            BarcodeSymbology.Ean8 => $"^BY2,2,{height}^B8N,{height},Y,N^FD{fieldData}^FS",
-            BarcodeSymbology.UpcA => $"^BY2,2,{height}^BUN,{height},Y,N^FD{fieldData}^FS",
-            BarcodeSymbology.Code128 => $"^BY2,2,{height}^BCN,{height},Y,N,N^FD{fieldData}^FS",
-            _ => $"^BY2,2,{height}^BEN,{height},Y,N^FD{fieldData}^FS"
+            BarcodeSymbology.Ean13 => $"^BY{normalizedModuleWidth},2,{height}^BEN,{height},Y,N^FD{fieldData}^FS",
+            BarcodeSymbology.Ean8 => $"^BY{normalizedModuleWidth},2,{height}^B8N,{height},Y,N^FD{fieldData}^FS",
+            BarcodeSymbology.UpcA => $"^BY{normalizedModuleWidth},2,{height}^BUN,{height},Y,N^FD{fieldData}^FS",
+            BarcodeSymbology.Code128 => $"^BY{normalizedModuleWidth},2,{height}^BCN,{height},Y,N,N^FD{fieldData}^FS",
+            _ => $"^BY{normalizedModuleWidth},2,{height}^BEN,{height},Y,N^FD{fieldData}^FS"
         };
     }
 }

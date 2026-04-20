@@ -330,7 +330,7 @@ public sealed class MainWindowViewModel : ViewModelBase
             return;
         }
 
-        File.WriteAllText(path, zpl, Encoding.ASCII);
+        File.WriteAllText(path, zpl, new UTF8Encoding(false));
         StatusMessage = $"Wyeksportowano ZPL do {Path.GetFileName(path)} ({validProductsCount} produktów, {TotalLabels} etykiet).";
     }
 
