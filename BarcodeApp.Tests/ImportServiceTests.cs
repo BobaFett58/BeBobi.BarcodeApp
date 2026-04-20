@@ -167,7 +167,7 @@ public sealed class ImportServiceTests
     }
 
     [Fact]
-    public void Import_Csv_EanSkuNamePriceQuantity_ComposesDescription()
+    public void Import_Csv_EanSkuNamePriceQuantity_StoresSeparateFields()
     {
         using var temp = new TempPath();
         var path = temp.GetFilePath("ean-sku-name-price.csv");
@@ -181,14 +181,18 @@ public sealed class ImportServiceTests
 
         Assert.Equal(2, result.Rows.Count);
         Assert.Equal("5907053182057", result.Rows[0].Ean);
-        Assert.Equal("HEYEHE Kuk+ 59,00", result.Rows[0].Name);
+        Assert.Equal("HEYEHE", result.Rows[0].Sku);
+        Assert.Equal("Kuk+", result.Rows[0].Name);
+        Assert.Equal("59,00", result.Rows[0].Price);
         Assert.Equal("1", result.Rows[0].QuantityText);
-        Assert.Equal("DHEYGXSD Dengu 2/3 60,00", result.Rows[1].Name);
+        Assert.Equal("DHEYGXSD", result.Rows[1].Sku);
+        Assert.Equal("Dengu 2/3", result.Rows[1].Name);
+        Assert.Equal("60,00", result.Rows[1].Price);
         Assert.Equal("2", result.Rows[1].QuantityText);
     }
 
     [Fact]
-    public void Import_Excel_EanSkuNamePriceQuantity_ComposesDescription()
+    public void Import_Excel_EanSkuNamePriceQuantity_StoresSeparateFields()
     {
         using var temp = new TempPath();
         var path = temp.GetFilePath("ean-sku-name-price.xlsx");
@@ -215,7 +219,9 @@ public sealed class ImportServiceTests
 
         Assert.Single(result.Rows);
         Assert.Equal("5907232820590", result.Rows[0].Ean);
-        Assert.Equal("BR20CSMS Pakia Torba MySkylos 59,00", result.Rows[0].Name);
+        Assert.Equal("BR20CSMS", result.Rows[0].Sku);
+        Assert.Equal("Pakia Torba MySkylos", result.Rows[0].Name);
+        Assert.Equal("59,00", result.Rows[0].Price);
         Assert.Equal("1", result.Rows[0].QuantityText);
     }
 }

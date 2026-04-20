@@ -133,16 +133,16 @@ public sealed class ImportService
             var sku = mapping.Value.SkuIndex.HasValue ? GetCell(row, mapping.Value.SkuIndex.Value) : string.Empty;
             var price = mapping.Value.PriceIndex.HasValue ? GetCell(row, mapping.Value.PriceIndex.Value) : string.Empty;
 
-            var description = BuildDescription(sku, name, price);
-
-            if (string.IsNullOrWhiteSpace(ean) && string.IsNullOrWhiteSpace(description) &&
+            if (string.IsNullOrWhiteSpace(ean) && string.IsNullOrWhiteSpace(name) &&
                 string.IsNullOrWhiteSpace(quantity)) continue;
 
             importedRows.Add(new ProductInputRow
             {
                 Ean = ean,
-                Name = description,
+                Name = name,
                 QuantityText = quantity,
+                Sku = sku,
+                Price = price,
                 SourceRowNumber = i + 1
             });
         }
@@ -201,14 +201,6 @@ public sealed class ImportService
         return new ColumnMapping(0, 1, 2, null, null);
     }
 
-    private static string BuildDescription(string sku, string name, string price)
-    {
-        var parts = new[] { sku, name, price }
-            .Where(part => !string.IsNullOrWhiteSpace(part))
-            .Select(part => part.Trim());
-
-        return string.Join(" ", parts);
-    }
 
     private static string NormalizeHeader(string header)
     {

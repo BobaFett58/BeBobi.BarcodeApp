@@ -41,6 +41,24 @@ public sealed class ProductRowViewModel : ViewModelBase
         }
     } = "1";
 
+    public string Sku
+    {
+        get;
+        set
+        {
+            if (SetProperty(ref field, value)) RowChanged?.Invoke(this, EventArgs.Empty);
+        }
+    } = string.Empty;
+
+    public string Price
+    {
+        get;
+        set
+        {
+            if (SetProperty(ref field, value)) RowChanged?.Invoke(this, EventArgs.Empty);
+        }
+    } = string.Empty;
+
     public bool IsValid
     {
         get;
@@ -69,6 +87,8 @@ public sealed class ProductRowViewModel : ViewModelBase
             Ean = input.Ean,
             Name = input.Name,
             QuantityText = input.QuantityText,
+            Sku = input.Sku,
+            Price = input.Price,
             BarcodeType = BarcodeSymbology.Ean13
         };
     }
@@ -86,7 +106,7 @@ public sealed class ProductRowViewModel : ViewModelBase
         data = new ValidProductData
         {
             Ean = Ean.Trim(),
-            Name = Name.Trim(),
+            Name = BuildDescription(Sku, Name, Price),
             Quantity = int.Parse(QuantityText.Trim())
         };
 
@@ -109,5 +129,14 @@ public sealed class ProductRowViewModel : ViewModelBase
         IsValid = errors.Count == 0;
         ValidationMessage = IsValid ? "OK" : string.Join(" | ", errors);
         RowChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private static string BuildDescription(string sku, string name, string price)
+    {
+        var parts = new[] { sku, name, price }
+            .Where(part => !string.IsNullOrWhiteSpace(part))
+            .Select(part => part.Trim());
+
+        return string.Join(" ", parts);
     }
 }

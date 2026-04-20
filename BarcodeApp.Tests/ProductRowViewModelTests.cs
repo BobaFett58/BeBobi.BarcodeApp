@@ -59,6 +59,38 @@ public sealed class ProductRowViewModelTests
     }
 
     [Fact]
+    public void TryBuildValidData_ComposesDescription_FromSkuNamePrice()
+    {
+        var row = ProductRowViewModel.CreateEmpty();
+        row.Ean = "5903949788051";
+        row.Sku = "HEYEHE";
+        row.Name = "Kuk+";
+        row.Price = "59,00";
+        row.QuantityText = "1";
+
+        var ok = row.TryBuildValidData(out var data);
+
+        Assert.True(ok);
+        Assert.Equal("HEYEHE Kuk+ 59,00", data.Name);
+    }
+
+    [Fact]
+    public void TryBuildValidData_ComposesDescription_SkipsEmptyParts()
+    {
+        var row = ProductRowViewModel.CreateEmpty();
+        row.Ean = "5903949788051";
+        row.Sku = "";
+        row.Name = "Kuk+";
+        row.Price = "";
+        row.QuantityText = "1";
+
+        var ok = row.TryBuildValidData(out var data);
+
+        Assert.True(ok);
+        Assert.Equal("Kuk+", data.Name);
+    }
+
+    [Fact]
     public void Validate_RaisesRowChanged()
     {
         var row = ProductRowViewModel.CreateEmpty();
